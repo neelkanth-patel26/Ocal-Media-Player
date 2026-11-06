@@ -360,9 +360,7 @@ class PlayerWindow(QMainWindow):
         self.scanner.start()
 
     def build_ui(self):
-        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         self.canvas = QWidget(objectName='canvas')
-        self.canvas.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         self.canvas.setMouseTracking(True)
         self.setMouseTracking(True)
         self.setCentralWidget(self.canvas)
@@ -762,7 +760,6 @@ class PlayerWindow(QMainWindow):
 
         # Bottom Transport Bar (Windows 11 Media Player Playback Bar)
         self.transport = QFrame(objectName='transport')
-        self.transport.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         self.transport.setMouseTracking(True)
         controls = QVBoxLayout(self.transport)
         controls.setContentsMargins(20, 10, 20, 12)
