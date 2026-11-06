@@ -244,7 +244,9 @@ QFrame#video_top_bar {{
 }}
 QFrame#transport {{
     background: {bg_transport};
+    border: none;
     border-top: {border_transport};
+    border-radius: 0px;
 }}
 QFrame#transport[floating="true"] {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -407,10 +409,20 @@ QPushButton#chip:hover {{
     color: {text_strong};
 }}
 QPushButton#chip:checked {{
-    color: {accent};
-    background: {chip_checked_bg};
-    border-color: {chip_checked_border};
+    color: {text};
+    background: {accent};
+    border: 1px solid {accent};
     font-weight: 600;
+}}
+QPushButton#chip:checked:hover {{
+    background: {hover};
+    border-color: {hover};
+    color: {text};
+}}
+QPushButton#chip:checked:pressed {{
+    background: {pressed};
+    border-color: {pressed};
+    color: {text};
 }}
 QPushButton#transport_round {{
     background: transparent;
@@ -663,9 +675,19 @@ QPushButton#view_toggle:hover {{
     border-color: {btn_hover_border};
 }}
 QPushButton#view_toggle:checked {{
-    background: {chip_checked_bg};
-    border-color: {chip_checked_border};
-    color: {accent};
+    background: {accent};
+    border: 1px solid {accent};
+    color: {text};
+}}
+QPushButton#view_toggle:checked:hover {{
+    background: {hover};
+    border-color: {hover};
+    color: {text};
+}}
+QPushButton#view_toggle:checked:pressed {{
+    background: {pressed};
+    border-color: {pressed};
+    color: {text};
 }}
 QMenu {{
     background: {menu_bg};

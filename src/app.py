@@ -360,7 +360,9 @@ class PlayerWindow(QMainWindow):
         self.scanner.start()
 
     def build_ui(self):
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         self.canvas = QWidget(objectName='canvas')
+        self.canvas.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         self.canvas.setMouseTracking(True)
         self.setMouseTracking(True)
         self.setCentralWidget(self.canvas)
@@ -568,7 +570,7 @@ class PlayerWindow(QMainWindow):
 
         # List and Grid View switchers
         self.btn_view_list = button('', lambda: self.set_collection_view('list'), 'view_toggle', 'List view')
-        self.btn_view_list.setIcon(get_icon('view_list', WIN11_ACCENT, 16))
+        self.btn_view_list.setIcon(get_icon('view_list', accent_text, 16))
         self.btn_view_list.setCheckable(True)
         self.btn_view_list.setChecked(True)
         collection_top.addWidget(self.btn_view_list)
@@ -760,6 +762,7 @@ class PlayerWindow(QMainWindow):
 
         # Bottom Transport Bar (Windows 11 Media Player Playback Bar)
         self.transport = QFrame(objectName='transport')
+        self.transport.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         self.transport.setMouseTracking(True)
         controls = QVBoxLayout(self.transport)
         controls.setContentsMargins(20, 10, 20, 12)
@@ -1321,19 +1324,19 @@ class PlayerWindow(QMainWindow):
 
     def set_collection_view(self, mode):
         self.collection_layout_mode = mode
-        accent = self.palette['accent'] if hasattr(self, 'palette') else WIN11_ACCENT
+        accent_text = self.palette.get('text', '#ffffff') if hasattr(self, 'palette') else WIN11_ACCENT_TEXT
         muted_icon = '#666666' if getattr(self, 'is_light', False) else '#a0a0a0'
         if mode == 'grid':
             self.collection_stack.setCurrentIndex(1)
             self.btn_view_grid.setChecked(True)
             self.btn_view_list.setChecked(False)
-            self.btn_view_grid.setIcon(get_icon('view_grid', accent, 16))
+            self.btn_view_grid.setIcon(get_icon('view_grid', accent_text, 16))
             self.btn_view_list.setIcon(get_icon('view_list', muted_icon, 16))
         else:
             self.collection_stack.setCurrentIndex(0)
             self.btn_view_list.setChecked(True)
             self.btn_view_grid.setChecked(False)
-            self.btn_view_list.setIcon(get_icon('view_list', accent, 16))
+            self.btn_view_list.setIcon(get_icon('view_list', accent_text, 16))
             self.btn_view_grid.setIcon(get_icon('view_grid', muted_icon, 16))
 
     def refresh(self):
@@ -1907,6 +1910,7 @@ class PlayerWindow(QMainWindow):
         if self.is_video_mode:
             self.reposition_video_overlays()
             self.wake_overlay_controls()
+        apply_win11_frameless_attributes(self, getattr(self, 'is_light', False))
 
     def toggle_max(self):
         if self.isMaximized():
@@ -1914,6 +1918,7 @@ class PlayerWindow(QMainWindow):
         else:
             self.showMaximized()
         self.update_max_button()
+        apply_win11_frameless_attributes(self, getattr(self, 'is_light', False))
 
     def update_max_button(self):
         cap_color = '#333333' if getattr(self, 'is_light', False) else '#cccccc'
@@ -2054,8 +2059,8 @@ class PlayerWindow(QMainWindow):
         # 4. View Switchers
         if hasattr(self, 'btn_view_list') and hasattr(self, 'btn_view_grid'):
             is_grid = (getattr(self, 'collection_layout_mode', 'list') == 'grid')
-            self.btn_view_grid.setIcon(get_icon('view_grid', accent if is_grid else muted_icon, 16))
-            self.btn_view_list.setIcon(get_icon('view_list', muted_icon if is_grid else accent, 16))
+            self.btn_view_grid.setIcon(get_icon('view_grid', accent_text if is_grid else muted_icon, 16))
+            self.btn_view_list.setIcon(get_icon('view_list', muted_icon if is_grid else accent_text, 16))
 
         # 5. Extras & Video Tools
         if hasattr(self, 'q_bm'):
@@ -2133,6 +2138,7 @@ class PlayerWindow(QMainWindow):
         etype = event.type()
         if etype == QEvent.Type.WindowStateChange:
             self.update_max_button()
+            apply_win11_frameless_attributes(self, getattr(self, 'is_light', False))
             if self.is_video_mode:
                 self.reposition_video_overlays()
         elif etype in (QEvent.Type.ActivationChange, QEvent.Type.PaletteChange, QEvent.Type.ApplicationPaletteChange):

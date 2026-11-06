@@ -97,7 +97,12 @@ class Engine:
 
     @property
     def state(self):
-        return self._media_player_get_state(self.player)
+        if not getattr(self, 'player', None):
+            return 0
+        try:
+            return self._media_player_get_state(self.player)
+        except Exception:
+            return 0
 
     @property
     def time(self):

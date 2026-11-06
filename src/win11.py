@@ -14,7 +14,10 @@ DWMWA_TEXT_COLOR = 36
 DWMWA_SYSTEMBACKDROP_TYPE = 38
 
 # DWM constants
+DWMWCP_DEFAULT = 0
+DWMWCP_DONOTROUND = 1      # Windows 11 square window corners
 DWMWCP_ROUND = 2           # Windows 11 rounded window corners
+DWMWCP_ROUNDSMALL = 3
 DWMSBT_MAINWINDOW = 2      # Windows 11 Mica material backdrop
 DWMSBT_TRANSIENTWINDOW = 3 # Windows 11 Acrylic material backdrop
 DWMSBT_TABBEDWINDOW = 4    # Windows 11 Tabbed Mica backdrop
@@ -376,8 +379,8 @@ def apply_win11_frameless_attributes(window, is_light=None):
     """
     Apply native Windows 11 DWM attributes to a frameless extended window:
     - Immersive dark/light mode (DWMWA_USE_IMMERSIVE_DARK_MODE)
-    - Windows 11 rounded window corners (DWMWA_WINDOW_CORNER_PREFERENCE)
-    - Native DWM drop shadow via 1px frame extension
+    - Windows 11 rounded window corners when restored, square when maximized/fullscreen
+    - Ensures 100% solid, opaque client area with zero desktop bleed-through
     """
     if sys.platform != 'win32':
         return False
@@ -391,12 +394,20 @@ def apply_win11_frameless_attributes(window, is_light=None):
         dark = c_int(0 if is_light else 1)
         dwm.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, byref(dark), sizeof(dark))
 
-        # Windows 11 rounded window corners
-        corners = c_int(DWMWCP_ROUND)
+        # Check if window is currently maximized or fullscreen
+        is_max = False
+        try:
+            is_max = window.isMaximized() or window.isFullScreen()
+        except Exception:
+            pass
+
+        # Windows 11 rounded window corners: DO NOT round when maximized or fullscreen
+        corner_val = DWMWCP_DONOTROUND if is_max else DWMWCP_ROUND
+        corners = c_int(corner_val)
         dwm.DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, byref(corners), sizeof(corners))
 
-        # Native DWM drop shadow for frameless window
-        margins = DWM_MARGINS(1, 1, 1, 1)
+        # Do not extend frame glass margins into client area (prevents see-through desktop bleed)
+        margins = DWM_MARGINS(0, 0, 0, 0)
         dwm.DwmExtendFrameIntoClientArea(hwnd, byref(margins))
 
         return True
