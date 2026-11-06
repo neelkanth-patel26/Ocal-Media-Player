@@ -117,6 +117,22 @@ class TestSettingsAndCustomization(unittest.TestCase):
         self.assertEqual(win_accent_swatch.system_accent, win_pal['accent'])
         self.assertIn(win_pal['accent'], win_accent_swatch.toolTip())
 
+    def test_system_integration_extensions_and_ui(self):
+        from src.system_integration import AUDIO_EXTENSIONS, VIDEO_EXTENSIONS, SHELL_THUMBNAIL_PROVIDER, get_app_icon_path
+        self.assertIn('.mp3', AUDIO_EXTENSIONS)
+        self.assertIn('.m4a', AUDIO_EXTENSIONS)
+        self.assertIn('.flac', AUDIO_EXTENSIONS)
+        self.assertIn('.mp4', VIDEO_EXTENSIONS)
+        self.assertIn('.mkv', VIDEO_EXTENSIONS)
+        self.assertEqual(SHELL_THUMBNAIL_PROVIDER, '{9DBD2C50-62AD-11D0-B806-00C04FD706EC}')
+        icon = get_app_icon_path()
+        self.assertTrue(icon.exists())
+
+        view = SettingsView(self.library, engine=None, is_light=False)
+        self.assertTrue(hasattr(view, 'set_default_btn'))
+        self.assertTrue(hasattr(view, 'open_default_settings_btn'))
+        self.assertTrue(hasattr(view, 'default_status_lbl'))
+
     def test_player_window_respects_navigation_and_resume_settings(self):
         from src.app import PlayerWindow
         window = PlayerWindow(self.library)

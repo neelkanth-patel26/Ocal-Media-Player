@@ -13,6 +13,7 @@ from PySide6.QtGui import QColor, QPainter, QBrush, QPen, QFont
 from .icons import get_icon
 from .win11 import get_windows_accent_palette, is_windows_light_theme, make_accent_palette
 from .updater import UpdateCheckerThread, UpdateDownloaderThread, launch_installer_and_exit, CURRENT_VERSION
+from .system_integration import is_registered_in_default_apps, register_default_media_player, open_windows_default_apps_settings
 
 
 class ColorSwatchButton(QPushButton):
@@ -514,7 +515,47 @@ class SettingsView(QWidget):
         self.c_layout.addWidget(video_card)
 
         # -------------------------------------------------------------
-        # Section 4: Updates & About
+        # Section 4: Windows Default Apps & System Integration
+        # -------------------------------------------------------------
+        self.c_layout.addSpacing(8)
+        self.c_layout.addWidget(self._create_section_label('DEFAULT APPS & SYSTEM INTEGRATION'))
+
+        default_card = SettingCard(self.is_light)
+        d_layout = QVBoxLayout(default_card)
+        d_layout.setContentsMargins(16, 14, 16, 14)
+        d_layout.setSpacing(12)
+
+        d_row = QHBoxLayout()
+        d_texts = QVBoxLayout()
+        d_texts.setSpacing(2)
+        d_title = QLabel('Default Media Player')
+        d_title.setStyleSheet('font-size: 14px; font-weight: 600;')
+        d_desc = QLabel('Register Ocal Media Player in Windows 11 Default Apps with thumbnail previews and native file icons')
+        d_desc.setStyleSheet('font-size: 12px; color: #888888;')
+        d_texts.addWidget(d_title)
+        d_texts.addWidget(d_desc)
+        d_row.addLayout(d_texts, 1)
+
+        self.set_default_btn = QPushButton('Set as Default Player')
+        self.set_default_btn.setObjectName('dialogPrimary')
+        self.set_default_btn.clicked.connect(self._on_set_default_player)
+        d_row.addWidget(self.set_default_btn)
+
+        self.open_default_settings_btn = QPushButton('Open Windows Default Apps')
+        self.open_default_settings_btn.clicked.connect(open_windows_default_apps_settings)
+        d_row.addWidget(self.open_default_settings_btn)
+
+        d_layout.addLayout(d_row)
+
+        self.default_status_lbl = QLabel()
+        self.default_status_lbl.setStyleSheet('font-size: 12px; color: #888888;')
+        self._refresh_default_status()
+        d_layout.addWidget(self.default_status_lbl)
+
+        self.c_layout.addWidget(default_card)
+
+        # -------------------------------------------------------------
+        # Section 5: Updates & About
         # -------------------------------------------------------------
         self.c_layout.addSpacing(8)
         self.c_layout.addWidget(self._create_section_label('SOFTWARE UPDATES & STORAGE'))
@@ -711,6 +752,22 @@ class SettingsView(QWidget):
             os.startfile(str(self.library.directory))
         except Exception:
             subprocess.Popen(['explorer', str(self.library.directory)])
+
+    def _on_set_default_player(self):
+        """Register Ocal Media Player in Windows Default Apps and open settings."""
+        register_default_media_player()
+        self._refresh_default_status()
+        open_windows_default_apps_settings()
+
+    def _refresh_default_status(self):
+        """Update Default Apps status label."""
+        if hasattr(self, 'default_status_lbl'):
+            if is_registered_in_default_apps():
+                self.default_status_lbl.setText('✓ Registered in Windows Default Apps (14 file types: MP3, MP4, FLAC, MKV, WAV, M4A, etc.)')
+                self.default_status_lbl.setStyleSheet('font-size: 12px; color: #10b981;')
+            else:
+                self.default_status_lbl.setText('Ocal Media Player is not currently registered in Windows Default Apps.')
+                self.default_status_lbl.setStyleSheet('font-size: 12px; color: #888888;')
 
     def check_for_updates(self):
         """Initiate background update check."""
