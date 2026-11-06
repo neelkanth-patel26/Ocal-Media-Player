@@ -1,8 +1,8 @@
-"""Native Windows 11 Fluent ContentDialogs for GNS Player."""
+"""Native Windows 11 Fluent ContentDialogs for Ocal Media Player."""
 from pathlib import Path
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QWidget, QFrame, QGridLayout, QLineEdit, QApplication
+    QWidget, QFrame, QGridLayout, QLineEdit, QApplication, QSizePolicy
 )
 from PySide6.QtCore import Qt, QRect, QRectF
 from PySide6.QtGui import QPainter, QColor, QFont, QPen, QBrush, QPainterPath
@@ -111,12 +111,16 @@ class FluentDialog(QDialog):
                 font-weight: 600;
                 color: {text_title};
                 letter-spacing: -0.3px;
+                margin: 0px;
+                padding: 0px;
             }}
             QLabel#dialogSubtitle {{
                 font-size: 10px;
                 font-weight: 700;
                 color: {self.palette_data['accent']};
                 letter-spacing: 1.2px;
+                margin: 0px;
+                padding: 0px;
             }}
             QLabel#dialogBody {{
                 font-size: 12px;
@@ -204,17 +208,23 @@ class FluentDialog(QDialog):
 
         # Header
         header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(14)
+        header.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         badge = FluentBadge('play', use_gradient=True, size=46)
         header.addWidget(badge)
 
         h_texts = QVBoxLayout()
-        h_texts.setSpacing(2)
+        h_texts.setContentsMargins(0, 0, 0, 0)
+        h_texts.setSpacing(1)
+        h_texts.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         sub = QLabel('OCAL MEDIA PLAYER')
         sub.setObjectName('dialogSubtitle')
+        sub.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         h_texts.addWidget(sub)
         title = QLabel('Ocal Media Player')
         title.setObjectName('dialogTitle')
+        title.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         h_texts.addWidget(title)
         header.addLayout(h_texts, 1)
         layout.addLayout(header)
@@ -290,17 +300,23 @@ class FluentDialog(QDialog):
 
         # Header
         header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(14)
+        header.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         badge = FluentBadge('keyboard', use_gradient=False, size=46)
         header.addWidget(badge)
 
         h_texts = QVBoxLayout()
-        h_texts.setSpacing(2)
+        h_texts.setContentsMargins(0, 0, 0, 0)
+        h_texts.setSpacing(1)
+        h_texts.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         sub = QLabel('QUICK REFERENCE')
         sub.setObjectName('dialogSubtitle')
+        sub.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         h_texts.addWidget(sub)
         title = QLabel('Keyboard Shortcuts')
         title.setObjectName('dialogTitle')
+        title.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         h_texts.addWidget(title)
         header.addLayout(h_texts, 1)
         layout.addLayout(header)
@@ -371,17 +387,23 @@ class FluentDialog(QDialog):
 
         # Header
         header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(14)
+        header.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         badge = FluentBadge('stream', use_gradient=False, size=46)
         header.addWidget(badge)
 
         h_texts = QVBoxLayout()
-        h_texts.setSpacing(2)
+        h_texts.setContentsMargins(0, 0, 0, 0)
+        h_texts.setSpacing(1)
+        h_texts.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         sub = QLabel('NETWORK PLAYBACK')
         sub.setObjectName('dialogSubtitle')
+        sub.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         h_texts.addWidget(sub)
         title = QLabel('Open Network Stream')
         title.setObjectName('dialogTitle')
+        title.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         h_texts.addWidget(title)
         header.addLayout(h_texts, 1)
         layout.addLayout(header)
@@ -442,17 +464,23 @@ class FluentDialog(QDialog):
 
         # Header
         header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(14)
+        header.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         badge = FluentBadge(icon_name, use_gradient=False, size=46)
         header.addWidget(badge)
 
         h_texts = QVBoxLayout()
-        h_texts.setSpacing(2)
+        h_texts.setContentsMargins(0, 0, 0, 0)
+        h_texts.setSpacing(1)
+        h_texts.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         sub = QLabel(subtitle.upper())
         sub.setObjectName('dialogSubtitle')
+        sub.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         h_texts.addWidget(sub)
         t_lbl = QLabel(title)
         t_lbl.setObjectName('dialogTitle')
+        t_lbl.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         h_texts.addWidget(t_lbl)
         header.addLayout(h_texts, 1)
         layout.addLayout(header)

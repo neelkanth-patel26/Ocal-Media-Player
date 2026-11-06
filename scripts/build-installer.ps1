@@ -81,3 +81,4 @@ if ($setupExe) {
     Write-Host " Installer size: $([math]::Round($setupExe.Length / 1MB, 2)) MB" -ForegroundColor Gray
 }
 Write-Host "============================================================" -ForegroundColor Green
+

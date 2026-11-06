@@ -98,9 +98,13 @@ class Library:
                 self.warning = f'Your library could not be read. A recovery copy is saved at {backup}.'
 
     def save(self):
-        temp = self.path.with_suffix('.tmp')
-        temp.write_text(json.dumps({'version': 1, 'items': self.items, 'settings': self.settings}, indent=2), encoding='utf-8')
-        temp.replace(self.path)
+        try:
+            self.directory.mkdir(parents=True, exist_ok=True)
+            temp = self.path.with_suffix('.tmp')
+            temp.write_text(json.dumps({'version': 1, 'items': self.items, 'settings': self.settings}, indent=2), encoding='utf-8')
+            temp.replace(self.path)
+        except Exception:
+            pass
 
     def add(self, locations):
         added = []

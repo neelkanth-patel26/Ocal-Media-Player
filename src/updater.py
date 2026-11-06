@@ -155,3 +155,4 @@ def launch_installer_and_exit(installer_path, silent=False):
         return True
     except Exception:
         return False
+

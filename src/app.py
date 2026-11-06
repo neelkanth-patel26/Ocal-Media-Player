@@ -16,7 +16,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QFrame, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView,
+    QHBoxLayout, QGridLayout, QSizePolicy, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView,
     QAbstractItemView, QListWidget, QListWidgetItem, QSlider, QComboBox,
     QFileDialog, QInputDialog, QMessageBox, QMenu, QStackedWidget,
 )
@@ -779,13 +779,18 @@ class PlayerWindow(QMainWindow):
         timeline.addWidget(self.duration)
         controls.addLayout(timeline)
 
-        # Bottom 3-Zone Control Area
-        lower = QHBoxLayout()
-        lower.setSpacing(14)
+        # Bottom 3-Zone Control Area (Strict Mathematical Centering)
+        lower = QGridLayout()
+        lower.setContentsMargins(0, 0, 0, 0)
+        lower.setSpacing(10)
 
         # Left Zone: Thumbnail, Track Info & Favorite Heart Button (Audio mode)
-        left_box = QHBoxLayout()
+        self.left_zone_widget = QWidget()
+        self.left_zone_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        left_box = QHBoxLayout(self.left_zone_widget)
+        left_box.setContentsMargins(0, 0, 0, 0)
         left_box.setSpacing(10)
+
         self.music_track_info = QWidget()
         m_info_box = QHBoxLayout(self.music_track_info)
         m_info_box.setContentsMargins(0, 0, 0, 0)
@@ -815,14 +820,15 @@ class PlayerWindow(QMainWindow):
         self.video_time_label.setStyleSheet('color: #ffffff; font-size: 13px; font-weight: 600; padding-left: 6px;')
         self.video_time_label.hide()
         left_box.addWidget(self.video_time_label)
+        left_box.addStretch(1)
 
-        lower.addLayout(left_box)
+        lower.addWidget(self.left_zone_widget, 0, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        lower.addStretch(1)
-
-        # Center Zone: Symmetrical Windows 11 Playback Controls
+        # Center Zone: Symmetrical Windows 11 Playback Controls (Perfect Center Alignment)
         transport_icon = '#333333' if self.is_light else '#d0d0d0'
-        center_box = QHBoxLayout()
+        self.center_zone_widget = QWidget()
+        center_box = QHBoxLayout(self.center_zone_widget)
+        center_box.setContentsMargins(0, 0, 0, 0)
         center_box.setSpacing(8)
 
         self.shuffle = button('', self.toggle_shuffle_btn, 'transport_round', 'Shuffle queue')
@@ -863,13 +869,15 @@ class PlayerWindow(QMainWindow):
         self.repeat.setIcon(get_icon('repeat', transport_icon, 18))
         center_box.addWidget(self.repeat)
 
-        lower.addLayout(center_box)
-
-        lower.addStretch(1)
+        lower.addWidget(self.center_zone_widget, 0, 1, Qt.AlignmentFlag.AlignCenter)
 
         # Right Zone: Playback speed, Volume & Tools
-        right_box = QHBoxLayout()
+        self.right_zone_widget = QWidget()
+        self.right_zone_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        right_box = QHBoxLayout(self.right_zone_widget)
+        right_box.setContentsMargins(0, 0, 0, 0)
         right_box.setSpacing(10)
+        right_box.addStretch(1)
 
         self.speed = QComboBox()
         self.speed.setAccessibleName('Playback speed')
@@ -920,7 +928,12 @@ class PlayerWindow(QMainWindow):
         self.more_btn.setIcon(get_icon('more', transport_icon, 18))
         right_box.addWidget(self.more_btn)
 
-        lower.addLayout(right_box)
+        lower.addWidget(self.right_zone_widget, 0, 2, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        lower.setColumnStretch(0, 1)
+        lower.setColumnStretch(1, 0)
+        lower.setColumnStretch(2, 1)
+
         controls.addLayout(lower)
         self.outer_layout.addWidget(self.transport)
 

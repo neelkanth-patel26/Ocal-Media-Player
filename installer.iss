@@ -81,3 +81,4 @@ Root: HKCU; Subkey: "Software\Classes\.webm\OpenWithProgids"; ValueType: string;
 
 [Run]
 Filename: "{app}\Ocal Media Player.exe"; Description: "{cm:LaunchProgram,Ocal Media Player}"; Flags: nowait postinstall skipifsilent
+

@@ -591,3 +591,4 @@ class SettingsView(QWidget):
             card.update_style(is_light)
         for _, btn in self.swatch_buttons:
             btn.update()
+
