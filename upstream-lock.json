@@ -1,0 +1,9 @@
+{
+  "repository": "https://code.videolan.org/videolan/vlc.git",
+  "branch": "master",
+  "source_commit": "b35060be5eef3caa126e370a6817bc59bfc3e3c4",
+  "runtime_commit": "c6d1df39",
+  "runtime_build": "20261104-0427",
+  "runtime_url": "https://artifacts.videolan.org/vlc/nightly-win64/20261104-0427/vlc-4.0.0-dev-win64-c6d1df39.zip",
+  "sha512": "6822f0b42b7f392989fd8420d70f62cba15bf2b594b9b55b4f6bb7cdeaa15b8ee3c84842f46543abec0058ac39e34c17b910a2232787b4782621b8b3eb2d6ed3"
+}
