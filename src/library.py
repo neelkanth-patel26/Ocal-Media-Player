@@ -58,6 +58,8 @@ class Library:
             'auto_check_updates': True,
             'auto_resume': True,
             'hardware_decoding': True,
+            'show_recently_played': True,
+            'hide_recent_view': False,
         }
         self.warning = ''
         if self.path.exists():

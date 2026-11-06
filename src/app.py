@@ -442,6 +442,8 @@ class PlayerWindow(QMainWindow):
             side.addWidget(b)
             self.nav[key] = b
 
+        self.update_sidebar_visibility()
+
         side.addStretch()
 
         self.sidebar_divider = QFrame()
@@ -722,6 +724,7 @@ class PlayerWindow(QMainWindow):
         self.settings_view.accent_color_changed.connect(self.on_accent_color_changed)
         self.settings_view.audio_profile_changed.connect(self.on_audio_profile_changed)
         self.settings_view.video_aspect_changed.connect(self.on_video_aspect_changed)
+        self.settings_view.setting_saved.connect(self.on_setting_saved)
         self.pages.addWidget(self.settings_view)
 
         # Right Up Next / Queue Panel
@@ -762,7 +765,7 @@ class PlayerWindow(QMainWindow):
         self.transport = QFrame(objectName='transport')
         self.transport.setMouseTracking(True)
         controls = QVBoxLayout(self.transport)
-        controls.setContentsMargins(20, 10, 20, 12)
+        controls.setContentsMargins(20, 8, 20, 10)
         controls.setSpacing(6)
 
         # Integrated Top Seekbar
@@ -844,7 +847,7 @@ class PlayerWindow(QMainWindow):
 
         self.back10_btn = button('', lambda: self.jump(-10000), 'transport_round', 'Back 10 seconds · ←')
         self.back10_btn.setFixedSize(34, 34)
-        self.back10_btn.setIcon(get_icon('back10', transport_icon, 18))
+        self.back10_btn.setIcon(get_icon('back10', transport_icon, 20))
         center_box.addWidget(self.back10_btn)
 
         # Large Circular WinUI 3 Play/Pause Button
@@ -855,7 +858,7 @@ class PlayerWindow(QMainWindow):
 
         self.fwd10_btn = button('', lambda: self.jump(10000), 'transport_round', 'Forward 10 seconds · →')
         self.fwd10_btn.setFixedSize(34, 34)
-        self.fwd10_btn.setIcon(get_icon('fwd10', transport_icon, 18))
+        self.fwd10_btn.setIcon(get_icon('fwd10', transport_icon, 20))
         center_box.addWidget(self.fwd10_btn)
 
         self.next_btn = button('', self.advance, 'transport_round', 'Next track')
@@ -1035,7 +1038,29 @@ class PlayerWindow(QMainWindow):
                 action()
             shortcut.activated.connect(invoke)
 
+    def update_sidebar_visibility(self):
+        show_recent = self.library.settings.get('show_recently_played', True)
+        if 'hide_recent_view' in self.library.settings:
+            show_recent = not self.library.settings['hide_recent_view']
+        if hasattr(self, 'nav') and 'Recently played' in self.nav:
+            self.nav['Recently played'].setVisible(show_recent)
+            if not show_recent and getattr(self, 'view', '') == 'Recently played':
+                self.navigate('All media')
+
+    def on_setting_saved(self, key, value):
+        if key in ('show_recently_played', 'hide_recent_view'):
+            self.update_sidebar_visibility()
+        elif key == 'auto_resume':
+            self.refresh()
+
     def navigate(self, title):
+        if title == 'Recently played':
+            show_recent = self.library.settings.get('show_recently_played', True)
+            if 'hide_recent_view' in self.library.settings:
+                show_recent = not self.library.settings['hide_recent_view']
+            if not show_recent:
+                self.navigate('All media')
+                return
         self.view = title
         self.filter_kind = 'All'
         if title == 'Now playing':
@@ -1239,7 +1264,7 @@ class PlayerWindow(QMainWindow):
         top_h = 52
         self.video_top_bar.setGeometry(0, 0, w, top_h)
 
-        trans_h = 86
+        trans_h = 98
         self.transport.setGeometry(0, h - trans_h, w, trans_h)
 
         drawer_w = 230
@@ -1368,7 +1393,7 @@ class PlayerWindow(QMainWindow):
         target_path = self.current.get('path', '').casefold() if self.current else ''
         for row, entry in enumerate(items):
             title = entry['title']
-            if entry['position'] > 5000:
+            if self.library.settings.get('auto_resume', True) and entry['position'] > 5000:
                 title += '   ·   Resume ' + clock(entry['position'])
             kind = entry['kind']
             is_playing = bool(target_path and entry.get('path', '').casefold() == target_path)
@@ -1547,7 +1572,10 @@ class PlayerWindow(QMainWindow):
             return
         self.current = entry
         self.has_played = False
-        self.pending_resume = entry['position'] if entry['duration'] - entry['position'] > 3000 else 0
+        if self.library.settings.get('auto_resume', True):
+            self.pending_resume = entry['position'] if entry['duration'] - entry['position'] > 3000 else 0
+        else:
+            self.pending_resume = 0
         entry['played'] = time.time()
         self.a = self.b = None
         self.loop_button.setText('Set loop start · A')
@@ -2079,12 +2107,12 @@ class PlayerWindow(QMainWindow):
         if hasattr(self, 'prev_btn'):
             self.prev_btn.setIcon(get_icon('prev', transport_icon, 18))
         if hasattr(self, 'back10_btn'):
-            self.back10_btn.setIcon(get_icon('back10', transport_icon, 18))
+            self.back10_btn.setIcon(get_icon('back10', transport_icon, 20))
         if hasattr(self, 'play_button'):
             is_playing = (self.engine.state == 2) if (self.engine and hasattr(self.engine, 'state')) else False
             self.play_button.setIcon(get_icon('pause' if is_playing else 'play', accent_text, 20))
         if hasattr(self, 'fwd10_btn'):
-            self.fwd10_btn.setIcon(get_icon('fwd10', transport_icon, 18))
+            self.fwd10_btn.setIcon(get_icon('fwd10', transport_icon, 20))
         if hasattr(self, 'next_btn'):
             self.next_btn.setIcon(get_icon('next', transport_icon, 18))
         if hasattr(self, 'repeat'):

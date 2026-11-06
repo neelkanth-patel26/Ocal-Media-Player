@@ -124,11 +124,11 @@ class TestVideoWatchMode(unittest.TestCase):
         h = self.window.height()
         geo = self.window.transport.geometry()
 
-        # Should be docked at bottom (0px gap), spanning 100% width, height 86px
+        # Should be docked at bottom (0px gap), spanning 100% width, height 98px
         self.assertEqual(geo.x(), 0)
         self.assertEqual(geo.width(), w)
-        self.assertEqual(geo.y(), h - 86)
-        self.assertEqual(geo.height(), 86)
+        self.assertEqual(geo.y(), h - 98)
+        self.assertEqual(geo.height(), 98)
 
         # Video mode elements active, audio clutter hidden
         self.assertTrue(self.window.video_time_label.isVisible())

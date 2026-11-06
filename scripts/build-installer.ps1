@@ -12,9 +12,12 @@ Write-Host " Ocal Media Player - Automated Build & Setup Generator" -ForegroundC
 Write-Host " Developer: Ocal Software under Gaming Network Studio" -ForegroundColor Gray
 Write-Host "============================================================" -ForegroundColor Cyan
 
-# 1. Clean previous build folders
-Write-Host "[1/3] Cleaning build directories..." -ForegroundColor Yellow
-@("dist-installer", "build") | ForEach-Object {
+# 1. Clean previous build folders and terminate running player
+Write-Host "[1/3] Terminating any running player processes and cleaning build directories..." -ForegroundColor Yellow
+Get-Process -Name "*Ocal Media Player*" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 500
+
+@("dist-installer", "build", "dist") | ForEach-Object {
     if (Test-Path $_) {
         Remove-Item -Recurse -Force $_ -ErrorAction SilentlyContinue
     }
@@ -39,6 +42,12 @@ Write-Host "[2/3] Building executable with PyInstaller..." -ForegroundColor Yell
 if ($LASTEXITCODE -ne 0) {
     throw "PyInstaller packaging failed with exit code $LASTEXITCODE."
 }
+
+$exePath = "dist\Ocal Media Player\Ocal Media Player.exe"
+if (-not (Test-Path $exePath)) {
+    throw "PyInstaller did not generate expected binary at: $exePath"
+}
+Write-Host "PyInstaller packaging complete and verified at: $exePath" -ForegroundColor Green
 
 # 3. Locate Inno Setup 6 Compiler (ISCC.exe)
 Write-Host "[3/3] Locating Inno Setup 6 and compiling installer..." -ForegroundColor Yellow

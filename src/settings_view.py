@@ -7,11 +7,11 @@ from PySide6.QtWidgets import (
     QFrame, QComboBox, QCheckBox, QLineEdit, QScrollArea,
     QProgressBar, QSizePolicy
 )
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QPainter, QBrush, QPen
+from PySide6.QtCore import Qt, Signal, QRectF, QPropertyAnimation, Property, QEasingCurve, QSize
+from PySide6.QtGui import QColor, QPainter, QBrush, QPen, QFont
 
 from .icons import get_icon
-from .win11 import get_windows_accent_palette, is_windows_light_theme
+from .win11 import get_windows_accent_palette, is_windows_light_theme, make_accent_palette
 from .updater import UpdateCheckerThread, UpdateDownloaderThread, launch_installer_and_exit, CURRENT_VERSION
 
 
@@ -53,6 +53,111 @@ class ColorSwatchButton(QPushButton):
             p.setPen(pen)
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawRoundedRect(1, 1, w - 2, h - 2, 9, 9)
+        p.end()
+
+
+class FluentToggleSwitch(QCheckBox):
+    """Windows 11 Fluent Design animated toggle switch with 'On'/'Off' indicator."""
+    def __init__(self, parent=None, is_light=False, accent='#ff6f59', accent_text='#ffffff'):
+        super().__init__(parent)
+        self.is_light = is_light
+        self.accent = accent
+        self.accent_text = accent_text
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._thumb_pos = 1.0 if self.isChecked() else 0.0
+        self.setFixedSize(76, 24)
+
+        self._anim = QPropertyAnimation(self, b'thumb_pos', self)
+        self._anim.setDuration(160)
+        self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.toggled.connect(self._on_toggled)
+
+    def _get_thumb_pos(self):
+        return self._thumb_pos
+
+    def _set_thumb_pos(self, val):
+        self._thumb_pos = val
+        self.update()
+
+    thumb_pos = Property(float, _get_thumb_pos, _set_thumb_pos)
+
+    def _on_toggled(self, checked):
+        self._anim.stop()
+        self._anim.setStartValue(self._thumb_pos)
+        self._anim.setEndValue(1.0 if checked else 0.0)
+        self._anim.start()
+
+    def setChecked(self, checked):
+        prev = self.isChecked()
+        super().setChecked(checked)
+        if prev != checked:
+            self._thumb_pos = 1.0 if checked else 0.0
+            self.update()
+
+    def apply_theme(self, is_light, accent, accent_text):
+        self.is_light = is_light
+        self.accent = accent
+        self.accent_text = accent_text
+        self.update()
+
+    def sizeHint(self):
+        return QSize(76, 24)
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+
+        checked = self.isChecked()
+        pos = self._thumb_pos
+
+        sw_w = 40.0
+        sw_h = 20.0
+        sw_x = 0.0
+        sw_y = (self.height() - sw_h) / 2.0
+        r = sw_h / 2.0
+
+        if self.is_light:
+            off_border = QColor(0, 0, 0, 110)
+            off_bg = QColor(0, 0, 0, 10)
+            off_thumb = QColor('#5d5d5d')
+            text_color = QColor('#1b1b1b')
+        else:
+            off_border = QColor(255, 255, 255, 120)
+            off_bg = QColor(255, 255, 255, 15)
+            off_thumb = QColor('#cecece')
+            text_color = QColor('#ffffff')
+
+        accent_col = QColor(self.accent)
+        accent_txt = QColor(self.accent_text)
+
+        if pos > 0.01:
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(accent_col)
+            p.drawRoundedRect(QRectF(sw_x, sw_y, sw_w, sw_h), r, r)
+        else:
+            p.setPen(QPen(off_border, 1.2))
+            p.setBrush(off_bg)
+            p.drawRoundedRect(QRectF(sw_x + 0.6, sw_y + 0.6, sw_w - 1.2, sw_h - 1.2), r, r)
+
+        thumb_diam = 12.0
+        start_x = sw_x + 4.0
+        end_x = sw_x + sw_w - thumb_diam - 4.0
+        thumb_x = start_x + (end_x - start_x) * pos
+        thumb_y = sw_y + (sw_h - thumb_diam) / 2.0
+
+        thumb_color = accent_txt if pos > 0.5 else off_thumb
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(thumb_color)
+        p.drawEllipse(QRectF(thumb_x, thumb_y, thumb_diam, thumb_diam))
+
+        f = QFont('Segoe UI Variable Display', 9, QFont.Weight.Medium)
+        f.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
+        p.setFont(f)
+        p.setPen(text_color)
+        text_str = 'On' if checked else 'Off'
+        p.drawText(QRectF(sw_w + 8, 0, self.width() - sw_w - 8, self.height()),
+                   Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, text_str)
         p.end()
 
 
@@ -246,6 +351,32 @@ class SettingsView(QWidget):
         a_layout.addLayout(swatch_row)
         self.c_layout.addWidget(accent_card)
 
+        # Navigation / Sidebar Card
+        nav_card = SettingCard(self.is_light)
+        n_layout = QVBoxLayout(nav_card)
+        n_layout.setContentsMargins(16, 14, 16, 14)
+        n_layout.setSpacing(10)
+
+        n_row = QHBoxLayout()
+        n_texts = QVBoxLayout()
+        n_texts.setSpacing(2)
+        n_title = QLabel('Recently Played View')
+        n_title.setStyleSheet('font-size: 14px; font-weight: 600;')
+        n_desc = QLabel('Show or hide the Recently played tab in the left sidebar navigation')
+        n_desc.setStyleSheet('font-size: 12px; color: #888888;')
+        n_texts.addWidget(n_title)
+        n_texts.addWidget(n_desc)
+        n_row.addLayout(n_texts, 1)
+
+        accent = self.palette_data.get('accent', '#ff6f59')
+        accent_text = self.palette_data.get('text', '#ffffff')
+
+        self.show_recent_cb = FluentToggleSwitch(self, is_light=self.is_light, accent=accent, accent_text=accent_text)
+        self.show_recent_cb.toggled.connect(self._on_recent_view_toggled)
+        n_row.addWidget(self.show_recent_cb)
+        n_layout.addLayout(n_row)
+        self.c_layout.addWidget(nav_card)
+
         # -------------------------------------------------------------
         # Section 2: Music & Audio Profile
         # -------------------------------------------------------------
@@ -289,7 +420,7 @@ class SettingsView(QWidget):
         resume_texts.addWidget(resume_desc)
         resume_row.addLayout(resume_texts, 1)
 
-        self.resume_cb = QCheckBox()
+        self.resume_cb = FluentToggleSwitch(self, is_light=self.is_light, accent=accent, accent_text=accent_text)
         self.resume_cb.toggled.connect(lambda v: self._save_bool_setting('auto_resume', v))
         resume_row.addWidget(self.resume_cb)
         au_layout.addLayout(resume_row)
@@ -339,7 +470,7 @@ class SettingsView(QWidget):
         hw_texts.addWidget(hw_desc)
         hw_row.addLayout(hw_texts, 1)
 
-        self.hw_cb = QCheckBox()
+        self.hw_cb = FluentToggleSwitch(self, is_light=self.is_light, accent=accent, accent_text=accent_text)
         self.hw_cb.toggled.connect(lambda v: self._save_bool_setting('hardware_decoding', v))
         hw_row.addWidget(self.hw_cb)
         v_layout.addLayout(hw_row)
@@ -464,6 +595,12 @@ class SettingsView(QWidget):
         # Hardware decoding
         self.hw_cb.setChecked(s.get('hardware_decoding', True))
 
+        # Recently played visibility
+        show_recent = s.get('show_recently_played', True)
+        if 'hide_recent_view' in s:
+            show_recent = not s['hide_recent_view']
+        self.show_recent_cb.setChecked(show_recent)
+
     def _update_swatch_selection(self, selected_hex):
         found = False
         for hex_code, btn in self.swatch_buttons:
@@ -487,6 +624,9 @@ class SettingsView(QWidget):
         self.library.settings['accent_color'] = hex_code
         self.library.save()
         self._update_swatch_selection(hex_code)
+        pal = make_accent_palette(hex_code, self.is_light) if hex_code != 'system' else get_windows_accent_palette(self.is_light)
+        for switch in self.findChildren(FluentToggleSwitch):
+            switch.apply_theme(self.is_light, pal['accent'], pal.get('text', '#ffffff'))
         self.accent_color_changed.emit(hex_code)
 
     def _apply_custom_hex(self):
@@ -517,6 +657,13 @@ class SettingsView(QWidget):
             self.video_aspect_changed.emit(code)
             if self.engine:
                 self.engine.set_aspect_ratio(code)
+
+    def _on_recent_view_toggled(self, checked):
+        self.library.settings['show_recently_played'] = bool(checked)
+        self.library.settings['hide_recent_view'] = not bool(checked)
+        self.library.save()
+        self.setting_saved.emit('show_recently_played', bool(checked))
+        self.setting_saved.emit('hide_recent_view', not bool(checked))
 
     def _save_bool_setting(self, key, value):
         self.library.settings[key] = bool(value)
@@ -591,4 +738,6 @@ class SettingsView(QWidget):
             card.update_style(is_light)
         for _, btn in self.swatch_buttons:
             btn.update()
+        for switch in self.findChildren(FluentToggleSwitch):
+            switch.apply_theme(is_light, palette['accent'], palette.get('text', '#ffffff'))
 

@@ -85,6 +85,47 @@ class TestSettingsAndCustomization(unittest.TestCase):
         self.assertEqual(self.library.settings['audio_profile'], 'Full bass')
         self.assertEqual(received_eq, ['Full bass'])
 
+        # Test auto_resume toggle
+        saved_events = []
+        view.setting_saved.connect(lambda k, v: saved_events.append((k, v)))
+        view.resume_cb.setChecked(False)
+        self.assertFalse(self.library.settings['auto_resume'])
+        self.assertIn(('auto_resume', False), saved_events)
+        view.resume_cb.setChecked(True)
+        self.assertTrue(self.library.settings['auto_resume'])
+        self.assertIn(('auto_resume', True), saved_events)
+
+        # Test recently played visibility toggle
+        view.show_recent_cb.setChecked(False)
+        self.assertFalse(self.library.settings['show_recently_played'])
+        self.assertTrue(self.library.settings['hide_recent_view'])
+        self.assertIn(('show_recently_played', False), saved_events)
+        self.assertIn(('hide_recent_view', True), saved_events)
+        view.show_recent_cb.setChecked(True)
+        self.assertTrue(self.library.settings['show_recently_played'])
+        self.assertFalse(self.library.settings['hide_recent_view'])
+
+    def test_player_window_respects_navigation_and_resume_settings(self):
+        from src.app import PlayerWindow
+        window = PlayerWindow(self.library)
+        try:
+            # Initially visible (not hidden)
+            self.assertFalse(window.nav['Recently played'].isHidden())
+
+            # Disable recently played
+            window.settings_view.show_recent_cb.setChecked(False)
+            self.assertTrue(window.nav['Recently played'].isHidden())
+
+            # Attempt to navigate to Recently played should route to All media
+            window.navigate('Recently played')
+            self.assertEqual(window.view, 'All media')
+
+            # Re-enable
+            window.settings_view.show_recent_cb.setChecked(True)
+            self.assertFalse(window.nav['Recently played'].isHidden())
+        finally:
+            window.close()
+
 
 if __name__ == '__main__':
     unittest.main()

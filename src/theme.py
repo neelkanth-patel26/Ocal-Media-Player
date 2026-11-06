@@ -259,6 +259,7 @@ QFrame#transport[floating="true"] {{
 }}
 QFrame#transport[floating="true"] QPushButton#transport_round {{
     color: #ffffff;
+    qproperty-iconSize: 20px 20px;
 }}
 QFrame#transport[floating="true"] QPushButton#transport_round:hover {{
     background: rgba(255, 255, 255, 0.14);
@@ -430,7 +431,7 @@ QPushButton#transport_round {{
     border-radius: 17px;
     padding: 4px;
     color: {transport_round_color};
-    qproperty-iconSize: 18px 18px;
+    qproperty-iconSize: 20px 20px;
 }}
 QPushButton#transport_round:hover {{
     background: {transport_round_hover};

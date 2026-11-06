@@ -115,23 +115,52 @@ def get_icon(name, color='#ffffff', size=24):
         _CACHE[key] = icon
         return icon
 
-    # Specialized rendering for back10 / fwd10 with numeric overlay
+    # Specialized rendering for back10 / fwd10 with numeric vector paths
     if name in {'back10', 'fwd10'}:
         scale = size / 24.0
         p.scale(scale, scale)
-        pen = QPen(QColor(color), 1.6, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+        col = QColor(color)
+        pen = QPen(col, 1.7, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
         p.setPen(pen)
+
+        # Outer circular arc with arrowhead
+        arc_rect = QRectF(3.0, 3.6, 18.0, 18.0)
         if name == 'back10':
-            p.drawArc(QRectF(4, 4, 16, 16), 45 * 16, 270 * 16)
-            p.drawLine(12.5, 3.2, 15.5, 4.8)
-            p.drawLine(15.5, 4.8, 13.8, 8)
+            # Counter-clockwise arc
+            p.drawArc(arc_rect, int(35 * 16), int(280 * 16))
+            p.setBrush(QBrush(col))
+            arrow = QPainterPath()
+            arrow.moveTo(11.2, 1.8)
+            arrow.lineTo(11.2, 6.4)
+            arrow.lineTo(7.4, 4.1)
+            arrow.closeSubpath()
+            p.drawPath(arrow)
         else:
-            p.drawArc(QRectF(4, 4, 16, 16), -45 * 16, -270 * 16)
-            p.drawLine(11.5, 3.2, 8.5, 4.8)
-            p.drawLine(8.5, 4.8, 10.2, 8)
-        f = QFont('Segoe UI Variable Display', 6, QFont.Weight.Bold)
-        p.setFont(f)
-        p.drawText(QRectF(5, 7, 14, 11), Qt.AlignmentFlag.AlignCenter, '10')
+            # Clockwise arc
+            p.drawArc(arc_rect, int(145 * 16), int(-280 * 16))
+            p.setBrush(QBrush(col))
+            arrow = QPainterPath()
+            arrow.moveTo(12.8, 1.8)
+            arrow.lineTo(12.8, 6.4)
+            arrow.lineTo(16.6, 4.1)
+            arrow.closeSubpath()
+            p.drawPath(arrow)
+
+        # Vector numeric '10' (crisp, high-contrast, perfectly centered)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        num_pen = QPen(col, 1.6, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+        p.setPen(num_pen)
+
+        # '1'
+        one = QPainterPath()
+        one.moveTo(7.8, 11.1)
+        one.lineTo(9.5, 9.4)
+        one.lineTo(9.5, 16.2)
+        p.drawPath(one)
+
+        # '0'
+        p.drawRoundedRect(QRectF(11.7, 9.4, 4.4, 6.8), 2.2, 2.2)
+
         p.end()
         icon = QIcon(pix)
         _CACHE[key] = icon
