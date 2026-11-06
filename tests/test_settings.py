@@ -105,6 +105,18 @@ class TestSettingsAndCustomization(unittest.TestCase):
         self.assertTrue(self.library.settings['show_recently_played'])
         self.assertFalse(self.library.settings['hide_recent_view'])
 
+        # Test Windows system accent swatch reflects live Windows theme
+        win_accent_swatch = None
+        for code, btn in view.swatch_buttons:
+            if code == 'system':
+                win_accent_swatch = btn
+                break
+        self.assertIsNotNone(win_accent_swatch)
+        self.assertTrue(win_accent_swatch.is_system)
+        win_pal = get_windows_accent_palette(view.is_light)
+        self.assertEqual(win_accent_swatch.system_accent, win_pal['accent'])
+        self.assertIn(win_pal['accent'], win_accent_swatch.toolTip())
+
     def test_player_window_respects_navigation_and_resume_settings(self):
         from src.app import PlayerWindow
         window = PlayerWindow(self.library)

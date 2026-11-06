@@ -16,16 +16,31 @@ from .updater import UpdateCheckerThread, UpdateDownloaderThread, launch_install
 
 
 class ColorSwatchButton(QPushButton):
-    """Clickable color swatch with rounded corners and selection ring."""
-    def __init__(self, color_hex, name, selected=False, is_system=False, parent=None):
+    """Clickable color swatch with rounded corners, selection ring, and Windows logo."""
+    def __init__(self, color_hex, name, selected=False, is_system=False, system_accent='#0078d4', system_text='#ffffff', parent=None):
         super().__init__(parent)
         self.color_hex = color_hex
         self.swatch_name = name
         self.is_selected = selected
         self.is_system = is_system
+        self.system_accent = system_accent
+        self.system_text = system_text
         self.setFixedSize(32, 32)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip(name)
+        self._update_tooltip()
+
+    def _update_tooltip(self):
+        if self.is_system:
+            self.setToolTip(f"{self.swatch_name} ({self.system_accent})")
+        else:
+            self.setToolTip(f"{self.swatch_name} ({self.color_hex})")
+
+    def update_system_color(self, accent_hex, text_hex):
+        """Update live system color and refresh swatch."""
+        self.system_accent = accent_hex
+        self.system_text = text_hex
+        self._update_tooltip()
+        self.update()
 
     def setSelected(self, sel):
         self.is_selected = sel
@@ -37,22 +52,37 @@ class ColorSwatchButton(QPushButton):
         w, h = self.width(), self.height()
 
         if self.is_system:
-            # Multi-color or gradient indicator for Windows system accent
+            # Live Windows system theme accent color
+            bg_color = QColor(self.system_accent)
             p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(QColor('#0078d4'))
-            p.drawRoundedRect(3, 3, w - 6, h - 6, 8, 8)
-            p.setBrush(QColor('#ffffff'))
-            p.drawText(0, 0, w, h, Qt.AlignmentFlag.AlignCenter, 'Win')
+            p.setBrush(bg_color)
+            p.drawRoundedRect(QRectF(3, 3, w - 6, h - 6), 7, 7)
+
+            # Windows 11 4-tile logo centered
+            tile_sz = 4.2
+            gap = 1.6
+            total_sz = tile_sz * 2 + gap
+            cx = (w - total_sz) / 2.0
+            cy = (h - total_sz) / 2.0
+
+            logo_color = QColor(self.system_text if self.system_text else '#ffffff')
+            p.setBrush(logo_color)
+            p.drawRect(QRectF(cx, cy, tile_sz, tile_sz))
+            p.drawRect(QRectF(cx + tile_sz + gap, cy, tile_sz, tile_sz))
+            p.drawRect(QRectF(cx, cy + tile_sz + gap, tile_sz, tile_sz))
+            p.drawRect(QRectF(cx + tile_sz + gap, cy + tile_sz + gap, tile_sz, tile_sz))
         else:
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(QColor(self.color_hex))
-            p.drawRoundedRect(3, 3, w - 6, h - 6, 8, 8)
+            p.drawRoundedRect(QRectF(3, 3, w - 6, h - 6), 7, 7)
 
         if self.is_selected:
-            pen = QPen(QColor('#ffffff' if not self.is_system else '#ffffff'), 2)
+            # High-contrast selection ring
+            ring_col = QColor('#ffffff')
+            pen = QPen(ring_col, 2)
             p.setPen(pen)
             p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawRoundedRect(1, 1, w - 2, h - 2, 9, 9)
+            p.drawRoundedRect(QRectF(1, 1, w - 2, h - 2), 9, 9)
         p.end()
 
 
@@ -328,8 +358,14 @@ class SettingsView(QWidget):
         # Color Swatches Row
         swatch_row = QHBoxLayout()
         swatch_row.setSpacing(10)
+        win_pal = get_windows_accent_palette(self.is_light)
         for hex_code, name, is_sys in self.PRESET_COLORS:
-            btn = ColorSwatchButton(hex_code, name, is_system=is_sys)
+            btn = ColorSwatchButton(
+                hex_code, name,
+                is_system=is_sys,
+                system_accent=win_pal['accent'],
+                system_text=win_pal.get('text', '#ffffff')
+            )
             btn.clicked.connect(lambda ch=False, c=hex_code: self._select_accent_color(c))
             swatch_row.addWidget(btn)
             self.swatch_buttons.append((hex_code, btn))
@@ -734,10 +770,14 @@ class SettingsView(QWidget):
         """Update settings cards and labels when application theme changes."""
         self.is_light = is_light
         self.palette_data = palette
+        win_pal = get_windows_accent_palette(is_light)
         for card in self.findChildren(SettingCard):
             card.update_style(is_light)
-        for _, btn in self.swatch_buttons:
-            btn.update()
+        for hex_code, btn in self.swatch_buttons:
+            if hex_code == 'system':
+                btn.update_system_color(win_pal['accent'], win_pal.get('text', '#ffffff'))
+            else:
+                btn.update()
         for switch in self.findChildren(FluentToggleSwitch):
             switch.apply_theme(is_light, palette['accent'], palette.get('text', '#ffffff'))
 
