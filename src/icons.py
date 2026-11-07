@@ -84,6 +84,7 @@ FLUENT_GLYPHS = {
     'download': '\uE896',
     'palette': '\uE790',
     'search': '\uE721',
+    'aspect_ratio': '\uE799',
 }
 
 

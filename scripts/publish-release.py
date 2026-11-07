@@ -11,27 +11,23 @@ from pathlib import Path
 REPO_OWNER = 'neelkanth-patel26'
 REPO_NAME = 'Ocal Media Player'
 GITHUB_REPO = 'neelkanth-patel26/Ocal-Media-Player'
-TAG_NAME = 'v1.0.0'
-RELEASE_NAME = 'Ocal Media Player v1.0.0'
+TAG_NAME = 'v1.0.1'
+RELEASE_NAME = 'Ocal Media Player v1.0.1'
 
-RELEASE_BODY = """## Ocal Media Player v1.0.0
+RELEASE_BODY = """## Ocal Media Player v1.0.1
 
 Developer: **Ocal Software under Gaming Network Studio**  
 Repository: [neelkanth-patel26/Ocal-Media-Player](https://github.com/neelkanth-patel26/Ocal-Media-Player)
 
-A native Windows 11 Fluent Design desktop media player built for ultra-responsive audio and video playback, powered by LibVLC 4.0.0.
-
-### Highlights & Features
-- **Native Windows 11 Fluent Design**: Real-time Mica & Acrylic backdrop materials, frameless dark/light theme integration, and live Windows system accent color synchronization.
-- **Windows 11 Default Apps Integration**: Registered in Windows 11 Default Apps as an official Media Client across 14 audio & video formats (`.mp3`, `.m4a`, `.flac`, `.wav`, `.aac`, `.ogg`, `.opus`, `.wma`, `.mp4`, `.mkv`, `.avi`, `.mov`, `.wmv`, `.webm`).
-- **File Explorer Shell Integration**: Full native file icons for audio files and video thumbnail preview extraction with custom player badge overlays in File Explorer.
-- **Audio Profile & Equalizer**: 13 hardware-tuned acoustic presets (Flat, Full Bass, Headphones, Rock, Pop, Classical, Techno, Dance, Live, etc.).
-- **Smart Playback Resume**: Remembers and restores exact timestamp positions across audio and video sessions.
-- **Built-in Auto Updater**: Automatic GitHub release checking, progress-tracked background installer downloads, and seamless 1-click updates.
+### What's New in v1.0.1
+- **Multi-Ratio & Portrait Video Support**: Full support for landscape, portrait, and square aspect ratios: `Auto`, `16:9`, `9:16` (Vertical / Shorts / Reels), `4:3`, `3:4`, `1:1`, `4:5`, `21:9`, `16:10`, `Fit to Window`, and `Fill Window`.
+- **Automatic Orientation & Anti-Stretch Detection**: Phone-recorded portrait videos and vertical content are automatically detected and pillarboxed cleanly without horizontal stretching or distortion.
+- **On-the-Fly Aspect Ratio Controls**: Quickly change aspect ratio directly from the video top bar chip button, right-click video context menu, or Settings.
+- **In-App Update Testing**: Version bump to enable manual verification of the in-app update system from v1.0.0.
 
 ### Included Downloads
-- `Ocal-Media-Player-1.0.0-Setup.exe`: Complete Windows 11 installer with Start Menu shortcuts, desktop icon, and automated file associations.
-- `Ocal-Media-Player-1.0.0-Portable-x64.zip`: Standalone portable package (extract and run anywhere).
+- `Ocal-Media-Player-1.0.1-Setup.exe`: Complete Windows 11 installer with Start Menu shortcuts, desktop icon, and automated file associations.
+- `Ocal-Media-Player-1.0.1-Portable-x64.zip`: Standalone portable package (extract and run anywhere).
 """
 
 
@@ -157,8 +153,8 @@ def main():
     dist_installer = base_dir / 'dist-installer'
 
     assets_to_upload = [
-        dist_installer / 'Ocal-Media-Player-1.0.0-Setup.exe',
-        dist_installer / 'Ocal-Media-Player-1.0.0-Portable-x64.zip',
+        dist_installer / 'Ocal-Media-Player-1.0.1-Setup.exe',
+        dist_installer / 'Ocal-Media-Player-1.0.1-Portable-x64.zip',
     ]
 
     for asset_path in assets_to_upload:

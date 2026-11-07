@@ -255,11 +255,17 @@ class SettingsView(QWidget):
     ]
 
     ASPECT_RATIOS = [
-        ('Auto', 'Auto (Default / Original Aspect)'),
+        ('Auto', 'Auto (Best Fit & Auto Orientation)'),
         ('16:9', '16:9 (Standard Widescreen)'),
-        ('4:3', '4:3 (Traditional TV / CRT)'),
+        ('9:16', '9:16 (Portrait / Shorts / Reels)'),
+        ('4:3', '4:3 (Traditional TV / Standard)'),
+        ('3:4', '3:4 (Portrait Standard)'),
+        ('1:1', '1:1 (Square)'),
+        ('4:5', '4:5 (Social Media Portrait)'),
         ('21:9', '21:9 (Cinematic Ultrawide)'),
-        ('16:10', '16:10 (Computer Display Fill)'),
+        ('16:10', '16:10 (Computer Display 8:5)'),
+        ('Fit', 'Fit Window (Preserve Aspect)'),
+        ('Fill', 'Fill Window (Crop / Stretch)'),
     ]
 
     def __init__(self, library, engine, parent=None, is_light=False):

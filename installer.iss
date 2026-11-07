@@ -1,6 +1,6 @@
 ; ============================================================
 ;  Ocal Media Player - Inno Setup 6 Installer
-;  Version  : 1.0.0
+;  Version  : 1.0.1
 ;  Builder  : Ocal Software under Gaming Network Studio
 ;  Compiler : Inno Setup 6
 ; ============================================================
@@ -8,8 +8,8 @@
 [Setup]
 AppId={{C72A0D45-B8E3-4E8A-9BF7-9A1D8DF12A74}
 AppName=Ocal Media Player
-AppVersion=1.0.0
-AppVerName=Ocal Media Player 1.0.0
+AppVersion=1.0.1
+AppVerName=Ocal Media Player 1.0.1
 AppPublisher=Ocal Software under Gaming Network Studio
 AppPublisherURL=https://github.com/neelkanth-patel26/Ocal-Media-Player
 AppSupportURL=https://github.com/neelkanth-patel26/Ocal-Media-Player/issues
@@ -18,7 +18,7 @@ AppCopyright=Copyright (C) 2026 Ocal Software under Gaming Network Studio
 DefaultDirName={autopf}\Ocal Media Player
 DefaultGroupName=Ocal Media Player
 OutputDir=dist-installer
-OutputBaseFilename=Ocal-Media-Player-1.0.0-Setup
+OutputBaseFilename=Ocal-Media-Player-1.0.1-Setup
 SetupIconFile=assets\app-icon.ico
 Compression=lzma2/ultra64
 LZMAUseSeparateProcess=yes
@@ -31,11 +31,11 @@ ArchitecturesInstallIn64BitMode=x64compatible x64
 MinVersion=10.0.17763
 UninstallDisplayIcon={app}\Ocal Media Player.exe
 UninstallDisplayName=Ocal Media Player
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion=1.0.1.0
 VersionInfoCompany=Ocal Software under Gaming Network Studio
 VersionInfoDescription=Ocal Media Player Installer
 VersionInfoProductName=Ocal Media Player
-VersionInfoProductVersion=1.0.0
+VersionInfoProductVersion=1.0.1
 WizardStyle=modern
 ShowLanguageDialog=no
 CloseApplications=no

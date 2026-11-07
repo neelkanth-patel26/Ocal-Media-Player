@@ -4,6 +4,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 Set-Location $projectRoot
 
@@ -81,6 +82,13 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $setupExe = Get-ChildItem "dist-installer\Ocal-Media-Player-*-Setup.exe" | Select-Object -First 1
+
+Write-Host "Creating portable zip package..." -ForegroundColor Yellow
+$portableZip = "dist-installer\Ocal-Media-Player-1.0.1-Portable-x64.zip"
+if (Test-Path $portableZip) { Remove-Item -Force $portableZip }
+& ./.venv/Scripts/python.exe -c "import shutil; shutil.make_archive('dist-installer/Ocal-Media-Player-1.0.1-Portable-x64', 'zip', root_dir='dist/Ocal Media Player')"
+Write-Host "Portable package created at: $portableZip" -ForegroundColor Green
+
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host " BUILD SUCCESSFUL!" -ForegroundColor Green
@@ -88,6 +96,11 @@ Write-Host " Portable binary: dist\Ocal Media Player\Ocal Media Player.exe" -For
 if ($setupExe) {
     Write-Host " Installer package: $($setupExe.FullName)" -ForegroundColor Cyan
     Write-Host " Installer size: $([math]::Round($setupExe.Length / 1MB, 2)) MB" -ForegroundColor Gray
+}
+if (Test-Path $portableZip) {
+    $zipItem = Get-Item $portableZip
+    Write-Host " Portable zip: $($zipItem.FullName)" -ForegroundColor Cyan
+    Write-Host " Portable zip size: $([math]::Round($zipItem.Length / 1MB, 2)) MB" -ForegroundColor Gray
 }
 Write-Host "============================================================" -ForegroundColor Green
 

@@ -992,6 +992,10 @@ class PlayerWindow(QMainWindow):
         self.v_bm.setIcon(get_icon('bookmark', cap_color, 14))
         top_bar_box.addWidget(self.v_bm)
 
+        self.v_aspect_btn = button('Aspect: Auto', self.show_aspect_menu, 'chip', 'Change video aspect ratio')
+        self.v_aspect_btn.setIcon(get_icon('aspect_ratio', cap_color, 14))
+        top_bar_box.addWidget(self.v_aspect_btn)
+
         self.v_fs_btn = button('', self.fullscreen, 'caption_btn', 'Toggle full screen · F11')
         self.v_fs_btn.setIcon(get_icon('fullscreen', cap_color, 14))
         top_bar_box.addWidget(self.v_fs_btn)
@@ -1572,6 +1576,8 @@ class PlayerWindow(QMainWindow):
             return
         self.current = entry
         self.has_played = False
+        self._current_video_size_checked = False
+        self._video_dimensions = (0, 0)
         if self.library.settings.get('auto_resume', True):
             self.pending_resume = entry['position'] if entry['duration'] - entry['position'] > 3000 else 0
         else:
@@ -1832,6 +1838,13 @@ class PlayerWindow(QMainWindow):
         menu = QMenu(self)
         menu.addAction('Load subtitles…', self.load_subtitles)
         menu.addAction('Save video snapshot…', self.snapshot)
+        ar_menu = menu.addMenu('Aspect ratio')
+        current_ar = self.library.settings.get('video_aspect', 'Auto')
+        for code, label in SettingsView.ASPECT_RATIOS:
+            act = ar_menu.addAction(label)
+            act.setCheckable(True)
+            act.setChecked(code == current_ar)
+            act.triggered.connect(lambda checked=False, c=code: self.set_video_aspect_ratio(c))
         timer = menu.addMenu('Sleep timer')
         for minutes in (15, 30, 60, 90):
             timer.addAction(f'{minutes} minutes', lambda m=minutes: self.set_sleep(m))
@@ -1887,6 +1900,24 @@ class PlayerWindow(QMainWindow):
                 self.pending_resume = 0
             if self.a is not None and self.b is not None and position >= self.b:
                 self.engine.seek(self.a)
+            if self.current.get('kind') in {'Video', 'Stream'} and not getattr(self, '_current_video_size_checked', False):
+                w, h = self.engine.get_video_size()
+                if w > 0 and h > 0:
+                    self._current_video_size_checked = True
+                    self._video_dimensions = (w, h)
+                    user_aspect = self.library.settings.get('video_aspect', 'Auto')
+                    if user_aspect == 'Auto':
+                        self.engine.set_display_fit(1)
+                        if h > w:
+                            self.engine.set_aspect_ratio(f"{w}:{h}")
+                            if hasattr(self, 'v_aspect_btn'):
+                                self.v_aspect_btn.setText(f'Aspect: Portrait ({w}:{h})')
+                        else:
+                            self.engine.set_aspect_ratio(None)
+                            if hasattr(self, 'v_aspect_btn'):
+                                self.v_aspect_btn.setText('Aspect: Auto')
+                    else:
+                        self.engine.set_aspect_ratio(user_aspect)
         
         # WinUI 3 Play/Pause icon (no emojis or text glyphs)
         self.play_button.setIcon(get_icon('pause' if state == 2 else 'play', self.palette['text'], 20))
@@ -2016,8 +2047,81 @@ class PlayerWindow(QMainWindow):
             self.engine.set_equalizer_preset(profile)
 
     def on_video_aspect_changed(self, aspect):
+        self.set_video_aspect_ratio(aspect, sync_settings_ui=False)
+
+    def set_video_aspect_ratio(self, aspect, sync_settings_ui=True):
+        self.library.settings['video_aspect'] = aspect
+        self.library.save()
         if self.engine:
-            self.engine.set_aspect_ratio(aspect)
+            if aspect == 'Auto' and getattr(self, '_video_dimensions', (0, 0))[1] > getattr(self, '_video_dimensions', (0, 0))[0] > 0:
+                w, h = self._video_dimensions
+                self.engine.set_aspect_ratio(f"{w}:{h}")
+            else:
+                self.engine.set_aspect_ratio(aspect)
+        if hasattr(self, 'v_aspect_btn'):
+            clean_name = aspect
+            for code, name in SettingsView.ASPECT_RATIOS:
+                if code == aspect:
+                    clean_name = name.split(' (')[0]
+                    break
+            self.v_aspect_btn.setText(f'Aspect: {clean_name}')
+        if sync_settings_ui and hasattr(self, 'settings_view') and hasattr(self.settings_view, 'ar_combo'):
+            idx = self.settings_view.ar_combo.findData(aspect)
+            if idx >= 0:
+                self.settings_view.ar_combo.blockSignals(True)
+                self.settings_view.ar_combo.setCurrentIndex(idx)
+                self.settings_view.ar_combo.blockSignals(False)
+
+    def show_aspect_menu(self):
+        menu = QMenu(self)
+        current_ar = self.library.settings.get('video_aspect', 'Auto')
+        for code, label in SettingsView.ASPECT_RATIOS:
+            act = menu.addAction(label)
+            act.setCheckable(True)
+            act.setChecked(code == current_ar)
+            act.triggered.connect(lambda checked=False, c=code: self.set_video_aspect_ratio(c))
+        if hasattr(self, 'v_aspect_btn'):
+            pos = self.v_aspect_btn.mapToGlobal(QPoint(0, self.v_aspect_btn.height() + 4))
+            menu.exec(pos)
+        else:
+            menu.exec(QCursor.pos())
+
+    def show_video_context_menu(self, global_pos):
+        menu = QMenu(self)
+        is_playing = self.engine and self.engine.state == 2
+        play_act = menu.addAction('Pause' if is_playing else 'Play')
+        play_act.setIcon(get_icon('pause' if is_playing else 'play', '#ffffff', 14))
+        play_act.triggered.connect(self.play_pause)
+
+        fs_act = menu.addAction('Exit full screen' if self.isFullScreen() else 'Full screen')
+        fs_act.setIcon(get_icon('fullscreen', '#ffffff', 14))
+        fs_act.triggered.connect(self.fullscreen)
+
+        menu.addSeparator()
+
+        ar_menu = menu.addMenu('Aspect ratio')
+        current_ar = self.library.settings.get('video_aspect', 'Auto')
+        for code, label in SettingsView.ASPECT_RATIOS:
+            act = ar_menu.addAction(label)
+            act.setCheckable(True)
+            act.setChecked(code == current_ar)
+            act.triggered.connect(lambda checked=False, c=code: self.set_video_aspect_ratio(c))
+
+        menu.addSeparator()
+
+        sub_act = menu.addAction('Subtitles…')
+        sub_act.setIcon(get_icon('subtitles', '#ffffff', 14))
+        sub_act.triggered.connect(self.load_subtitles)
+
+        snap_act = menu.addAction('Save video snapshot…')
+        snap_act.setIcon(get_icon('camera', '#ffffff', 14))
+        snap_act.triggered.connect(self.snapshot)
+
+        bm_act = menu.addAction('Bookmark this moment')
+        bm_act.setIcon(get_icon('bookmark', '#ffffff', 14))
+        bm_act.triggered.connect(self.add_bookmark)
+
+        menu.exec(global_pos)
 
     def auto_check_updates(self):
         if hasattr(self, 'settings_view'):
@@ -2145,6 +2249,8 @@ class PlayerWindow(QMainWindow):
             self.v_snap.setIcon(get_icon('camera', cap_color, 14))
         if hasattr(self, 'v_bm'):
             self.v_bm.setIcon(get_icon('bookmark', cap_color, 14))
+        if hasattr(self, 'v_aspect_btn'):
+            self.v_aspect_btn.setIcon(get_icon('aspect_ratio', cap_color, 14))
         if hasattr(self, 'v_fs_btn'):
             is_fullscreen = self.isFullScreen()
             self.v_fs_btn.setIcon(get_icon('cap_restore' if is_fullscreen else 'fullscreen', cap_color, 14))
@@ -2179,6 +2285,12 @@ class PlayerWindow(QMainWindow):
                     if obj is self.video or (isinstance(obj, QWidget) and self.video.isAncestorOf(obj)):
                         self.fullscreen()
                         return True
+                elif etype == QEvent.Type.MouseButtonPress:
+                    if event.button() == Qt.MouseButton.RightButton:
+                        if obj is self.video or (isinstance(obj, QWidget) and self.video.isAncestorOf(obj)):
+                            pos = event.globalPosition().toPoint() if hasattr(event, 'globalPosition') else event.globalPos()
+                            self.show_video_context_menu(pos)
+                            return True
         except (RuntimeError, AttributeError):
             return False
         try:

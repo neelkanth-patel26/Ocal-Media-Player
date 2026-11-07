@@ -52,6 +52,11 @@ class Engine:
             'media_player_set_equalizer': (C.c_int, [C.c_void_p, C.c_void_p]),
             'video_set_aspect_ratio': (None, [C.c_void_p, C.c_char_p]),
             'video_get_aspect_ratio': (C.c_char_p, [C.c_void_p]),
+            'video_get_size': (C.c_int, [C.c_void_p, C.c_uint, C.POINTER(C.c_uint), C.POINTER(C.c_uint)]),
+            'video_set_scale': (None, [C.c_void_p, C.c_float]),
+            'video_get_scale': (C.c_float, [C.c_void_p]),
+            'video_set_display_fit': (None, [C.c_void_p, C.c_int]),
+            'video_get_display_fit': (C.c_int, [C.c_void_p]),
         }
         for name, (result, args) in signatures.items():
             fn = getattr(self.lib, 'libvlc_' + name)
@@ -70,6 +75,7 @@ class Engine:
         self._media_player_set_hwnd(self.player, hwnd)
         self._video_set_mouse_input(self.player, 0)
         self._video_set_key_input(self.player, 0)
+        self._video_set_display_fit(self.player, 1)
 
     def play(self, location):
         self.paused_seek = None
@@ -177,11 +183,49 @@ class Engine:
                     return True
         return False
 
+    def get_video_size(self, num=0):
+        if not self.player:
+            return (0, 0)
+        w, h = C.c_uint(0), C.c_uint(0)
+        res = self._video_get_size(self.player, num, C.byref(w), C.byref(h))
+        if res == 0 and w.value > 0 and h.value > 0:
+            return (w.value, h.value)
+        return (0, 0)
+
+    def get_aspect_ratio(self):
+        if not self.player:
+            return 'Auto'
+        val = self._video_get_aspect_ratio(self.player)
+        if val:
+            return val.decode('utf-8', errors='ignore')
+        return 'Auto'
+
+    def set_display_fit(self, mode):
+        # 0: none, 1: fit smaller (letterbox/pillarbox inside display), 2: fit larger, 3: fit width, 4: fit height
+        if self.player:
+            self._video_set_display_fit(self.player, int(mode))
+
+    def get_display_fit(self):
+        if self.player:
+            return self._video_get_display_fit(self.player)
+        return 1
+
     def set_aspect_ratio(self, ratio_str):
-        if not ratio_str or ratio_str.lower() in ('auto', 'default'):
+        if not self.player:
+            return
+        if not ratio_str or str(ratio_str).strip().lower() in ('auto', 'default'):
             self._video_set_aspect_ratio(self.player, None)
+            self._video_set_display_fit(self.player, 1)
+        elif str(ratio_str).strip().lower() in ('fit', 'fit to window'):
+            self._video_set_aspect_ratio(self.player, None)
+            self._video_set_display_fit(self.player, 1)
+        elif str(ratio_str).strip().lower() in ('fill', 'fill window', 'stretch'):
+            self._video_set_aspect_ratio(self.player, None)
+            self._video_set_display_fit(self.player, 2)
         else:
-            self._video_set_aspect_ratio(self.player, ratio_str.encode('utf-8'))
+            clean = str(ratio_str).strip()
+            self._video_set_aspect_ratio(self.player, clean.encode('utf-8'))
+            self._video_set_display_fit(self.player, 1)
 
     def close(self):
         if self.player:

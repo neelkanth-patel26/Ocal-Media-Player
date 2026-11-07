@@ -62,9 +62,27 @@ class TestSettingsAndCustomization(unittest.TestCase):
             self.assertTrue(engine.set_equalizer_preset('Flat'))
             self.assertTrue(engine.set_equalizer_preset('Full bass'))
             engine.set_aspect_ratio('16:9')
+            engine.set_aspect_ratio('9:16')
             engine.set_aspect_ratio('Auto')
+            engine.set_display_fit(1)
+            self.assertEqual(engine.get_display_fit(), 1)
+            self.assertEqual(engine.get_video_size(), (0, 0))
         finally:
             engine.close()
+
+    def test_aspect_ratios_supported(self):
+        codes = [code for code, name in SettingsView.ASPECT_RATIOS]
+        self.assertIn('Auto', codes)
+        self.assertIn('9:16', codes)
+        self.assertIn('16:9', codes)
+        self.assertIn('4:3', codes)
+        self.assertIn('3:4', codes)
+        self.assertIn('1:1', codes)
+        self.assertIn('4:5', codes)
+        self.assertIn('21:9', codes)
+        self.assertIn('16:10', codes)
+        self.assertIn('Fit', codes)
+        self.assertIn('Fill', codes)
 
     def test_settings_view_widgets_and_signals(self):
         view = SettingsView(self.library, engine=None, is_light=False)
