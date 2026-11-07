@@ -146,6 +146,14 @@ def main():
     release_id = release['id']
     html_url = release.get('html_url')
 
+    base_dir = Path(__file__).resolve().parent.parent
+    dist_installer = base_dir / 'dist-installer'
+
+    assets_to_upload = [
+        dist_installer / 'Ocal-Media-Player-1.0.1-Setup.exe',
+        dist_installer / 'Ocal-Media-Player-1.0.1-Portable-x64.zip',
+    ]
+
     # Delete existing asset if present so we can upload the updated build
     for a in release.get('assets', []):
         if a.get('name') in {p.name for p in assets_to_upload}:
