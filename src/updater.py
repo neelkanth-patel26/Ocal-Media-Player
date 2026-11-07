@@ -141,7 +141,7 @@ def launch_installer_and_exit(installer_path, silent=False):
     """Launch the downloaded Inno Setup installer and terminate current application."""
     if not os.path.exists(installer_path):
         return False
-    args = [str(installer_path)]
+    args = [str(installer_path), '/UPDATE']
     if silent:
         args.extend(['/SILENT', '/SUPPRESSMSGBOXES', '/NORESTART'])
     try:

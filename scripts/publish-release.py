@@ -146,21 +146,23 @@ def main():
     release_id = release['id']
     html_url = release.get('html_url')
 
-    # Existing asset filenames
-    existing_assets = {a.get('name') for a in release.get('assets', [])}
-
-    base_dir = Path(__file__).resolve().parent.parent
-    dist_installer = base_dir / 'dist-installer'
-
-    assets_to_upload = [
-        dist_installer / 'Ocal-Media-Player-1.0.1-Setup.exe',
-        dist_installer / 'Ocal-Media-Player-1.0.1-Portable-x64.zip',
-    ]
+    # Delete existing asset if present so we can upload the updated build
+    for a in release.get('assets', []):
+        if a.get('name') in {p.name for p in assets_to_upload}:
+            aid = a['id']
+            print(f'Deleting previous asset {a["name"]} (id {aid}) to upload updated build...')
+            del_req = urllib.request.Request(
+                f'https://api.github.com/repos/{GITHUB_REPO}/releases/assets/{aid}',
+                headers={'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json'},
+                method='DELETE'
+            )
+            try:
+                with urllib.request.urlopen(del_req) as del_resp:
+                    pass
+            except Exception as e:
+                print(f'Note: Asset delete response: {e}')
 
     for asset_path in assets_to_upload:
-        if asset_path.name in existing_assets:
-            print(f'Asset already present on release: {asset_path.name} (skipping)')
-            continue
         if asset_path.is_file():
             upload_asset(token, release_id, asset_path)
         else:
