@@ -191,13 +191,16 @@ def rgba(palette, alpha):
     return f'rgba({r}, {g}, {b}, {alpha})'
 
 
-def refresh_win11_theme():
+def refresh_win11_theme(custom_accent_hex=None):
     """Reload active Windows 11 theme mode and accent palette."""
     global ACCENT_PALETTE, WIN11_ACCENT, WIN11_ACCENT_HOVER, WIN11_ACCENT_PRESSED
     global WIN11_ACCENT_BASE, WIN11_ACCENT_DARK, WIN11_ACCENT_TEXT, WIN11_ACCENT_RGB
     global WIN11_BG, WIN11_SIDEBAR, WIN11_CARD, WIN11_TRANSPORT, WIN11_TEXT_PRIMARY, WIN11_TEXT_MUTED, WIN11_BORDER
     is_light = is_windows_light_theme()
-    ACCENT_PALETTE = get_windows_accent_palette(is_light)
+    if custom_accent_hex and custom_accent_hex.lower() != 'system':
+        ACCENT_PALETTE = make_accent_palette(custom_accent_hex, is_light)
+    else:
+        ACCENT_PALETTE = get_windows_accent_palette(is_light)
     WIN11_ACCENT = ACCENT_PALETTE['accent']
     WIN11_ACCENT_HOVER = ACCENT_PALETTE['hover']
     WIN11_ACCENT_PRESSED = ACCENT_PALETTE['pressed']

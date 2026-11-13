@@ -36,7 +36,7 @@ if __package__ is None or __package__ == '':
     )
     from src.dialogs import FluentDialog
     from src.icons import get_icon, get_navigation_icon
-    from src.artwork import get_media_artwork, clear_artwork_cache, create_fallback_artwork
+    from src.artwork import get_media_artwork, clear_artwork_cache, create_fallback_artwork, set_active_accent
     from src.metadata import extract_media_metadata
     from src.settings_view import SettingsView
     from src.updater import CURRENT_VERSION
@@ -53,7 +53,7 @@ else:
     )
     from .dialogs import FluentDialog
     from .icons import get_icon, get_navigation_icon
-    from .artwork import get_media_artwork, clear_artwork_cache, create_fallback_artwork
+    from .artwork import get_media_artwork, clear_artwork_cache, create_fallback_artwork, set_active_accent
     from .metadata import extract_media_metadata
     from .settings_view import SettingsView
     from .updater import CURRENT_VERSION
@@ -84,6 +84,7 @@ class MediaThumbnail(QWidget):
         super().__init__(parent)
         self.setFixedSize(42, 42)
         self.kind = ''
+        self.path = None
         self.pixmap = None
         self.is_light = is_light
         self.accent = accent or WIN11_ACCENT
@@ -92,15 +93,19 @@ class MediaThumbnail(QWidget):
         self.is_light = is_light
         if accent:
             self.accent = accent
+        if self.path:
+            self.pixmap = get_media_artwork(self.path, self.kind or 'Music', 42, 6, is_light=self.is_light, accent=self.accent)
         self.update()
 
-    def set_media(self, kind, pixmap=None):
+    def set_media(self, kind, pixmap=None, path=None):
         self.kind = kind
+        self.path = path
         self.pixmap = pixmap
         self.update()
 
     def set_kind(self, kind):
         self.kind = kind
+        self.path = None
         self.pixmap = None
         self.update()
 
@@ -298,6 +303,7 @@ class PlayerWindow(QMainWindow):
             self.palette = make_accent_palette(user_accent, self.is_light)
         else:
             self.palette = get_windows_accent_palette(self.is_light)
+        set_active_accent(self.palette['accent'], self.is_light)
 
         self._current_is_light = self.is_light
         self._current_accent = self.palette['accent']
@@ -1457,7 +1463,7 @@ class PlayerWindow(QMainWindow):
             self.btn_view_list.setIcon(get_icon('view_list', accent_text, 16))
             self.btn_view_grid.setIcon(get_icon('view_grid', muted_icon, 16))
 
-    def refresh(self):
+    def refresh(self, force_rebuild=False):
         for title, b in self.nav.items():
             b.setChecked(title == self.view)
         is_settings = (self.view == 'Settings')
@@ -1466,7 +1472,7 @@ class PlayerWindow(QMainWindow):
         self.folder_button.setVisible(not is_settings)
         self.scan_btn.setVisible(not is_settings)
         self.stream_btn.setVisible(not is_settings)
-        if is_settings:
+        if is_settings and not force_rebuild:
             return
         for chip in self.chips:
             chip.setChecked(chip.text() == self.filter_kind)
@@ -1680,7 +1686,7 @@ class PlayerWindow(QMainWindow):
         self.track_title.setText(entry['title'])
         self.track_title.setToolTip(entry['title'])
         art = get_media_artwork(entry['path'], entry.get('kind', 'Music'), 42, 6, is_light=self.is_light, accent=self.palette['accent'])
-        self.media_thumb.set_media(entry.get('kind', ''), art)
+        self.media_thumb.set_media(entry.get('kind', ''), art, path=entry.get('path'))
         self.update_favorite_button()
         self.playing_title.setText(entry['title'])
         if hasattr(self, 'video_overlay_title'):
@@ -2119,7 +2125,9 @@ class PlayerWindow(QMainWindow):
 
     def check_system_theme(self, force=False):
         """Detect live Windows 11 Light/Dark theme mode & Accent color changes or settings overrides."""
-        win_is_light, win_palette = refresh_win11_theme()
+        user_accent = self.library.settings.get('accent_color', 'system') if hasattr(self, 'library') else 'system'
+        custom_accent = user_accent if (user_accent and user_accent.lower() != 'system') else None
+        win_is_light, win_palette = refresh_win11_theme(custom_accent_hex=custom_accent)
         user_mode = self.library.settings.get('theme_mode', 'system') if hasattr(self, 'library') else 'system'
         if user_mode == 'dark':
             effective_is_light = False
@@ -2128,9 +2136,8 @@ class PlayerWindow(QMainWindow):
         else:
             effective_is_light = win_is_light
 
-        user_accent = self.library.settings.get('accent_color', 'system') if hasattr(self, 'library') else 'system'
-        if user_accent and user_accent.lower() != 'system':
-            effective_palette = make_accent_palette(user_accent, effective_is_light)
+        if custom_accent:
+            effective_palette = make_accent_palette(custom_accent, effective_is_light)
         else:
             effective_palette = get_windows_accent_palette(effective_is_light)
 
@@ -2143,6 +2150,9 @@ class PlayerWindow(QMainWindow):
         self.is_light = effective_is_light
         self.palette = effective_palette
 
+        # Keep artwork fallback generator in sync with active accent
+        set_active_accent(effective_palette['accent'], effective_is_light)
+
         # Apply updated stylesheet
         app = QApplication.instance()
         if app:
@@ -2151,18 +2161,26 @@ class PlayerWindow(QMainWindow):
         # Re-apply Windows 11 DWM attributes
         apply_win11_frameless_attributes(self, effective_is_light)
 
-        # Clear artwork cache so fallback placeholder cards match light/dark mode
+        # Clear artwork cache so fallback placeholder cards match light/dark mode and new accent
         clear_artwork_cache()
 
         # Update all UI vector icon colors and badges
         self.update_theme_elements()
+
+        # Re-render currently playing track badge with new accent color
+        if self.current:
+            art = get_media_artwork(self.current['path'], self.current.get('kind', 'Music'), 42, 6, is_light=self.is_light, accent=self.palette['accent'])
+            self.media_thumb.set_media(self.current.get('kind', ''), art, path=self.current.get('path'))
+            if hasattr(self, 'music_now_art'):
+                art_stage = get_media_artwork(self.current['path'], 'Music', 220, 12, is_light=self.is_light, accent=self.palette['accent'])
+                self.music_now_art.setPixmap(art_stage)
 
         # Update settings view if present
         if hasattr(self, 'settings_view'):
             self.settings_view.apply_theme(effective_is_light, effective_palette)
 
         # Refresh collection view and now playing
-        self.refresh()
+        self.refresh(force_rebuild=True)
         if hasattr(self, 'update_queue'):
             self.update_queue()
 
@@ -2539,6 +2557,7 @@ def main():
         palette = make_accent_palette(user_accent, is_light)
     else:
         palette = get_windows_accent_palette(is_light)
+    set_active_accent(palette['accent'], is_light)
 
     app.setStyleSheet(get_stylesheet(palette, is_light))
     try:

@@ -69,7 +69,7 @@ class TestArtwork(unittest.TestCase):
         _ART_CACHE.clear()
         art1 = get_media_artwork('test_virtual_track.mp3', 'Music', 140, 8)
         self.assertFalse(art1.isNull())
-        self.assertIn(('test_virtual_track.mp3', 140, 8), _ART_CACHE)
+        self.assertTrue(any(k[:3] == ('test_virtual_track.mp3', 140, 8) for k in _ART_CACHE))
 
         art2 = get_media_artwork('test_virtual_track.mp3', 'Music', 140, 8)
         self.assertEqual(art1, art2)

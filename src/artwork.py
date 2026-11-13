@@ -11,6 +11,16 @@ from .win11 import WIN11_ACCENT, is_windows_light_theme, get_windows_accent_pale
 from .icons import get_icon
 
 _ART_CACHE = {}
+_ACTIVE_ACCENT = None
+_ACTIVE_IS_LIGHT = None
+
+
+def set_active_accent(accent, is_light=None):
+    """Set global active application accent color and theme mode for fallbacks."""
+    global _ACTIVE_ACCENT, _ACTIVE_IS_LIGHT
+    _ACTIVE_ACCENT = accent
+    if is_light is not None:
+        _ACTIVE_IS_LIGHT = is_light
 
 
 class _GUID(Structure):
@@ -465,7 +475,9 @@ def fallback_colors(accent, is_light):
 def create_fallback_artwork(kind='Music', size=140, radius=8, accent=None, is_light=None):
     """Generate a flat, theme-aware artwork tile without a circular backdrop."""
     if is_light is None:
-        is_light = is_windows_light_theme()
+        is_light = _ACTIVE_IS_LIGHT if _ACTIVE_IS_LIGHT is not None else is_windows_light_theme()
+    if accent is None:
+        accent = _ACTIVE_ACCENT
     if accent is None:
         palette = get_windows_accent_palette(is_light)
         accent = palette.get('accent', '#0078d4' if is_light else '#60cdff')
@@ -511,12 +523,14 @@ def get_media_artwork(file_path_or_url, kind='Music', size=140, radius=8, is_lig
     - Fallback: Clean Windows 11 Fluent card with vector media icon in accent color (supports light/dark).
     """
     if is_light is None:
-        is_light = is_windows_light_theme()
+        is_light = _ACTIVE_IS_LIGHT if _ACTIVE_IS_LIGHT is not None else is_windows_light_theme()
+    if accent is None:
+        accent = _ACTIVE_ACCENT
     if accent is None:
         palette = get_windows_accent_palette(is_light)
         accent = palette.get('accent', '#0078d4' if is_light else '#60cdff')
 
-    key = (file_path_or_url, size, radius)
+    key = (str(file_path_or_url), size, radius, str(accent).lower() if accent else None, bool(is_light))
     if key in _ART_CACHE:
         return _ART_CACHE[key]
 
