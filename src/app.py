@@ -1874,17 +1874,39 @@ class PlayerWindow(QMainWindow):
                 self.video_time_label.setText(f"{clock(preview_ms)} / {clock(length)}")
 
     def seek_released(self):
-        if self.engine and self.engine.seekable:
-            self.pending_resume = 0
-            length = (self.engine.length if self.engine else 0) or (self.current.get('duration', 0) if self.current else 0)
-            if length > 0:
-                target_ms = length * self.seek.value() / 10000
-                self.engine.seek(target_ms)
-                if self.current:
-                    self.current['position'] = int(target_ms)
-                self.elapsed.setText(clock(target_ms))
-                if hasattr(self, 'video_time_label'):
-                    self.video_time_label.setText(f"{clock(target_ms)} / {clock(length)}")
+        if not self.engine:
+            return
+        self.pending_resume = 0
+
+        # If nothing is currently playing, start playing first track from current view or queue
+        if not self.current:
+            target_list = self.visible_items if self.visible_items else self.queue
+            if target_list:
+                item = target_list[0]
+                if target_list is self.visible_items:
+                    self.start_queue(target_list)
+                else:
+                    self.play_item(item)
+                length = item.get('duration', 0)
+                if length > 0:
+                    target_ms = int(length * self.seek.value() / 10000)
+                    self.pending_resume = target_ms
+                    self.engine.seek(target_ms)
+            return
+
+        length = (self.engine.length if self.engine else 0) or (self.current.get('duration', 0) if self.current else 0)
+        if length > 0:
+            target_ms = int(length * self.seek.value() / 10000)
+            self.engine.seek(target_ms)
+            if self.current:
+                self.current['position'] = int(target_ms)
+            self.elapsed.setText(clock(target_ms))
+            if hasattr(self, 'video_time_label'):
+                self.video_time_label.setText(f"{clock(target_ms)} / {clock(length)}")
+
+        # If paused or stopped, clicking the timeline resumes / starts playback
+        if self.engine.state in (3, 4, 6):
+            self.engine.pause(False)
 
     def jump(self, amount):
         if self.current and self.engine.seekable:
@@ -2033,7 +2055,7 @@ class PlayerWindow(QMainWindow):
         self.duration.setText(clock(length))
         if hasattr(self, 'video_time_label'):
             self.video_time_label.setText(f"{clock(position)} / {clock(length)}")
-        self.seek.setEnabled(self.engine.seekable)
+        self.seek.setEnabled(True)
         if not self.seek.isSliderDown():
             self.seek.setValue(int(position / length * 10000) if length else 0)
         if state == 6:

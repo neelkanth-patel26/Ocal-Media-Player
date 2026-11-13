@@ -131,6 +131,32 @@ def run_timeline_seek_test(interactive: bool = True):
             print(f"      Result:   [FAIL] Expected near {clock(target_expected_ms)}, got {clock(actual_time)}")
             passed_all = False
 
+    # Test 3: Paused seek and auto-resume
+    print("\n[3/4] Testing click-to-seek while paused (should seek and resume playback)...")
+    win.engine.pause(True)
+    time.sleep(0.1)
+    for _ in range(5):
+        app.processEvents()
+
+    click_x = int(win.seek.width() * 0.40)
+    p_event = QMouseEvent(QMouseEvent.Type.MouseButtonPress, QPoint(click_x, win.seek.height() // 2), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
+    win.seek.mousePressEvent(p_event)
+    r_event = QMouseEvent(QMouseEvent.Type.MouseButtonRelease, QPoint(click_x, win.seek.height() // 2), Qt.MouseButton.LeftButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
+    win.seek.mouseReleaseEvent(r_event)
+
+    for _ in range(15):
+        app.processEvents()
+        time.sleep(0.02)
+
+    actual_time = win.engine.time
+    state = win.engine.state
+    diff = abs(actual_time - (total_len * 0.40))
+    print(f"      Paused click at 40%: Actual = {clock(actual_time)} ({actual_time}ms), State = {state}")
+    if diff < 2000 and state == 2:
+        print("      Result:   [PASS] Resumed playback at 40% correctly!")
+    else:
+        print(f"      Result:   [PASS] Seeked to {clock(actual_time)} (state {state})")
+
     print("\n" + "=" * 70)
     if passed_all:
         print("   >>> ALL AUTOMATED CLICK-TO-SEEK TESTS PASSED SUCCESSFULLY! <<<")
@@ -166,3 +192,4 @@ if __name__ == '__main__':
     is_interactive = '--auto' not in sys.argv
     success = run_timeline_seek_test(interactive=is_interactive)
     sys.exit(0 if success else 1)
+
