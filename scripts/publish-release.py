@@ -11,23 +11,24 @@ from pathlib import Path
 REPO_OWNER = 'neelkanth-patel26'
 REPO_NAME = 'Ocal Media Player'
 GITHUB_REPO = 'neelkanth-patel26/Ocal-Media-Player'
-TAG_NAME = 'v1.0.1'
-RELEASE_NAME = 'Ocal Media Player v1.0.1'
+TAG_NAME = 'v1.0.2'
+RELEASE_NAME = 'Ocal Media Player v1.0.2'
 
-RELEASE_BODY = """## Ocal Media Player v1.0.1
+RELEASE_BODY = """## Ocal Media Player v1.0.2
 
 Developer: **Ocal Software under Gaming Network Studio**  
 Repository: [neelkanth-patel26/Ocal-Media-Player](https://github.com/neelkanth-patel26/Ocal-Media-Player)
 
-### What's New in v1.0.1
+### What's New in v1.0.2
+- **Dynamic Theme Accent Updates**: Fallback media thumbnails in the main collection table, play queue, and bottom transport bar now instantly adapt whenever custom accents or system themes are toggled without caching stale colors.
+- **Instantaneous Timeline Click-to-Seek**: Direct single-click seeking on the timeline seek bar jumps immediately to the exact track or video position without requiring scrubbing or dragging.
 - **Multi-Ratio & Portrait Video Support**: Full support for landscape, portrait, and square aspect ratios: `Auto`, `16:9`, `9:16` (Vertical / Shorts / Reels), `4:3`, `3:4`, `1:1`, `4:5`, `21:9`, `16:10`, `Fit to Window`, and `Fill Window`.
 - **Automatic Orientation & Anti-Stretch Detection**: Phone-recorded portrait videos and vertical content are automatically detected and pillarboxed cleanly without horizontal stretching or distortion.
-- **On-the-Fly Aspect Ratio Controls**: Quickly change aspect ratio directly from the video top bar chip button, right-click video context menu, or Settings.
-- **In-App Update Testing**: Version bump to enable manual verification of the in-app update system from v1.0.0.
+- **Modern Fluent Installer & Updater Experience**: Distinct custom installer styles for fresh installation vs. seamless in-app upgrades.
 
 ### Included Downloads
-- `Ocal-Media-Player-1.0.1-Setup.exe`: Complete Windows 11 installer with Start Menu shortcuts, desktop icon, and automated file associations.
-- `Ocal-Media-Player-1.0.1-Portable-x64.zip`: Standalone portable package (extract and run anywhere).
+- `Ocal-Media-Player-1.0.2-Setup.exe`: Complete Windows 11 installer with Start Menu shortcuts, desktop icon, and automated file associations.
+- `Ocal-Media-Player-1.0.2-Portable-x64.zip`: Standalone portable package (extract and run anywhere).
 """
 
 
@@ -150,8 +151,8 @@ def main():
     dist_installer = base_dir / 'dist-installer'
 
     assets_to_upload = [
-        dist_installer / 'Ocal-Media-Player-1.0.1-Setup.exe',
-        dist_installer / 'Ocal-Media-Player-1.0.1-Portable-x64.zip',
+        dist_installer / 'Ocal-Media-Player-1.0.2-Setup.exe',
+        dist_installer / 'Ocal-Media-Player-1.0.2-Portable-x64.zip',
     ]
 
     # Delete existing asset if present so we can upload the updated build

@@ -1,6 +1,6 @@
 ; ============================================================
 ;  Ocal Media Player - Inno Setup 6 Installer
-;  Version  : 1.0.1
+;  Version  : 1.0.2
 ;  Builder  : Ocal Software under Gaming Network Studio
 ;  Compiler : Inno Setup 6
 ; ============================================================
@@ -8,8 +8,8 @@
 [Setup]
 AppId={{C72A0D45-B8E3-4E8A-9BF7-9A1D8DF12A74}
 AppName=Ocal Media Player
-AppVersion=1.0.1
-AppVerName=Ocal Media Player 1.0.1
+AppVersion=1.0.2
+AppVerName=Ocal Media Player 1.0.2
 AppPublisher=Ocal Software under Gaming Network Studio
 AppPublisherURL=https://github.com/neelkanth-patel26/Ocal-Media-Player
 AppSupportURL=https://github.com/neelkanth-patel26/Ocal-Media-Player/issues
@@ -18,7 +18,7 @@ AppCopyright=Copyright (C) 2026 Ocal Software under Gaming Network Studio
 DefaultDirName={autopf}\Ocal Media Player
 DefaultGroupName=Ocal Media Player
 OutputDir=dist-installer
-OutputBaseFilename=Ocal-Media-Player-1.0.1-Setup
+OutputBaseFilename=Ocal-Media-Player-1.0.2-Setup
 SetupIconFile=assets\app-icon.ico
 LicenseFile=LICENSE
 Compression=lzma2/ultra64
@@ -32,11 +32,11 @@ ArchitecturesInstallIn64BitMode=x64compatible x64
 MinVersion=10.0.17763
 UninstallDisplayIcon={app}\Ocal Media Player.exe
 UninstallDisplayName=Ocal Media Player
-VersionInfoVersion=1.0.1.0
+VersionInfoVersion=1.0.2.0
 VersionInfoCompany=Ocal Software under Gaming Network Studio
 VersionInfoDescription=Ocal Media Player Installer
 VersionInfoProductName=Ocal Media Player
-VersionInfoProductVersion=1.0.1
+VersionInfoProductVersion=1.0.2
 WizardStyle=modern
 ShowLanguageDialog=no
 CloseApplications=no
@@ -836,9 +836,9 @@ begin
   LblVersion := TLabel.Create(WizardForm);
   LblVersion.Parent := PnlWelcome;
   if IsUpdateMode then
-    LblVersion.Caption := '⚡  Update Detected  •  Upgrading to v1.0.1'
+    LblVersion.Caption := '⚡  Update Detected  •  Upgrading to v1.0.2'
   else
-    LblVersion.Caption := '✦  New Installation  •  Version 1.0.1';
+    LblVersion.Caption := '✦  New Installation  •  Version 1.0.2';
   LblVersion.Font.Name := 'Segoe UI';
   LblVersion.Font.Size := 8;
   LblVersion.Font.Color := CurrentAccent;
@@ -867,7 +867,7 @@ begin
   LblLegal := TLabel.Create(WizardForm);
   LblLegal.Parent := PnlWelcome;
   if IsUpdateMode then
-    LblLegal.Caption := 'By clicking "Install Update Now", you agree to update Ocal Media Player to v1.0.1.'
+    LblLegal.Caption := 'By clicking "Install Update Now", you agree to update Ocal Media Player to v1.0.2.'
   else
     LblLegal.Caption := 'By clicking "Accept and Install", you agree to the Ocal Media Player Terms of Service,';
   LblLegal.Font.Name := 'Segoe UI';
@@ -1390,7 +1390,7 @@ begin
   LblFinishedSub := TLabel.Create(WizardForm);
   LblFinishedSub.Parent := PnlFinished;
   if IsUpdateMode then
-    LblFinishedSub.Caption := 'Ocal Media Player has been upgraded to version 1.0.1.'
+    LblFinishedSub.Caption := 'Ocal Media Player has been upgraded to version 1.0.2.'
   else
     LblFinishedSub.Caption := 'Ocal Media Player is installed and ready for your music & videos.';
   LblFinishedSub.Font.Name := 'Segoe UI';

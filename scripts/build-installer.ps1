@@ -81,12 +81,14 @@ if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup compilation failed with exit code $LASTEXITCODE."
 }
 
+$version = ((Get-Content src/updater.py | Select-String 'CURRENT_VERSION\s*=\s*"([^"]+)"').Matches.Groups[1].Value)
+if (-not $version) { $version = "1.0.2" }
 $setupExe = Get-ChildItem "dist-installer\Ocal-Media-Player-*-Setup.exe" | Select-Object -First 1
 
 Write-Host "Creating portable zip package..." -ForegroundColor Yellow
-$portableZip = "dist-installer\Ocal-Media-Player-1.0.1-Portable-x64.zip"
+$portableZip = "dist-installer\Ocal-Media-Player-$version-Portable-x64.zip"
 if (Test-Path $portableZip) { Remove-Item -Force $portableZip }
-& ./.venv/Scripts/python.exe -c "import shutil; shutil.make_archive('dist-installer/Ocal-Media-Player-1.0.1-Portable-x64', 'zip', root_dir='dist/Ocal Media Player')"
+& ./.venv/Scripts/python.exe -c "import shutil; shutil.make_archive('dist-installer/Ocal-Media-Player-$version-Portable-x64', 'zip', root_dir='dist/Ocal Media Player')"
 Write-Host "Portable package created at: $portableZip" -ForegroundColor Green
 
 Write-Host ""

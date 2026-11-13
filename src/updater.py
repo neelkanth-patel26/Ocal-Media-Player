@@ -9,7 +9,7 @@ from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 from PySide6.QtCore import QThread, Signal
 
-CURRENT_VERSION = "1.0.1"
+CURRENT_VERSION = "1.0.2"
 REPO_OWNER = "neelkanth-patel26"
 REPO_NAME = "Ocal-Media-Player"
 LATEST_RELEASE_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
