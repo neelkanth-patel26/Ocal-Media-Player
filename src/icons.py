@@ -88,6 +88,15 @@ FLUENT_GLYPHS = {
 }
 
 
+def get_navigation_icon(name, color, selected_color):
+    """Keep checked navigation icons legible on the solid accent surface."""
+    icon = QIcon(get_icon(name, color, 24))
+    selected = get_icon(name, selected_color, 24).pixmap(24, 24)
+    icon.addPixmap(selected, QIcon.Mode.Normal, QIcon.State.On)
+    icon.addPixmap(selected, QIcon.Mode.Active, QIcon.State.On)
+    return icon
+
+
 def get_icon(name, color='#ffffff', size=24):
     """Return a cached QIcon rendered via the Segoe Fluent Icon pack."""
     key = (name, color, size)

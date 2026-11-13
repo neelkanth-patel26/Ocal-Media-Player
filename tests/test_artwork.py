@@ -1,5 +1,7 @@
 import tempfile
 import unittest
+import ctypes
+from ctypes import wintypes
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QSize, Qt
@@ -8,13 +10,41 @@ from PySide6.QtGui import QPixmap, QImage
 from src.artwork import (
     create_fallback_artwork, round_pixmap, get_media_artwork,
     extract_windows_thumbnail, extract_id3_artwork, find_folder_artwork,
-    _ART_CACHE
+    _ART_CACHE, image_from_shell_bitmap, _BITMAPINFOHEADER
 )
 
 app = QApplication.instance() or QApplication([])
 
 
 class TestArtwork(unittest.TestCase):
+    def test_shell_bitmap_orientation(self):
+        """Both native row orders must render red at the top, blue at the bottom."""
+        gdi = ctypes.WinDLL('gdi32')
+        gdi.CreateDIBSection.argtypes = [wintypes.HDC, ctypes.c_void_p, wintypes.UINT,
+                                        ctypes.POINTER(ctypes.c_void_p), wintypes.HANDLE, wintypes.DWORD]
+        gdi.CreateDIBSection.restype = wintypes.HBITMAP
+        gdi.DeleteObject.argtypes = [wintypes.HGDIOBJ]
+        gdi.DeleteObject.restype = wintypes.BOOL
+        red = b'\x00\x00\xff\x00' * 2
+        blue = b'\xff\x00\x00\x00' * 2
+        for height in (2, -2):
+            with self.subTest(native_height=height):
+                header = _BITMAPINFOHEADER()
+                header.biSize = ctypes.sizeof(header)
+                header.biWidth, header.biHeight = 2, height
+                header.biPlanes, header.biBitCount = 1, 32
+                pixels = ctypes.c_void_p()
+                bitmap = gdi.CreateDIBSection(None, ctypes.byref(header), 0, ctypes.byref(pixels), None, 0)
+                self.assertTrue(bitmap)
+                try:
+                    ctypes.memmove(pixels, blue + red if height > 0 else red + blue, 16)
+                    image = image_from_shell_bitmap(bitmap)
+                finally:
+                    gdi.DeleteObject(bitmap)
+                # Verify after deleting the handle: the image must own its pixels.
+                self.assertEqual(image.pixelColor(0, 0).name(), '#ff0000')
+                self.assertEqual(image.pixelColor(0, 1).name(), '#0000ff')
+
     def test_fallback_artwork(self):
         pm_music = create_fallback_artwork('Music', 140, 8)
         self.assertFalse(pm_music.isNull())

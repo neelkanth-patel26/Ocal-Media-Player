@@ -372,30 +372,42 @@ QPushButton#primary:pressed {{
 }}
 QPushButton#nav {{
     text-align: left;
-    border: none;
-    border-left: 3px solid transparent;
+    border: 1px solid transparent;
     background: transparent;
-    padding: 9px 12px;
-    border-radius: 4px;
+    padding: 10px 14px;
+    min-height: 24px;
+    border-radius: 10px;
     color: {nav_text};
     font-size: 13px;
     font-weight: 500;
-    qproperty-iconSize: 18px 18px;
+    qproperty-iconSize: 24px 24px;
 }}
 QPushButton#nav:checked {{
-    background: {nav_checked_bg};
-    color: {nav_checked_text};
-    border-left: 3px solid {accent};
-    border-top-left-radius: 0px;
-    border-bottom-left-radius: 0px;
+    background: {accent};
+    color: {text};
+    border-color: {accent};
     font-weight: 600;
 }}
 QPushButton#nav:hover {{
     background: {nav_hover};
     color: {nav_checked_text};
+    border-color: {btn_hover_border};
+}}
+QPushButton#nav:checked:hover {{
+    background: {hover};
+    color: {text};
+    border-color: {hover};
 }}
 QPushButton#nav:pressed {{
-    background: {btn_pressed};
+    background: rgba({r}, {g}, {b}, 0.25);
+}}
+QPushButton#nav:checked:pressed {{
+    background: {pressed};
+    color: {text};
+    border-color: {pressed};
+}}
+QPushButton#nav:focus {{
+    border: 1px solid {accent};
 }}
 QPushButton#chip {{
     border-radius: 13px;
@@ -516,17 +528,18 @@ QTableWidget {{
 }}
 QTableWidget::item {{
     padding: 8px 10px;
+    border-radius: 0px;
     border-bottom: {table_border};
     color: {table_item_color};
 }}
 QTableWidget::item:hover {{
     background: {table_hover};
-    border-radius: 4px;
+    border-radius: 0px;
 }}
 QTableWidget::item:selected {{
     background: {table_selected};
     color: {text_strong};
-    border-radius: 4px;
+    border-radius: 0px;
 }}
 QHeaderView::section {{
     color: {table_header_color};

@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QGridLayout, QSizePolicy, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView,
     QAbstractItemView, QListWidget, QListWidgetItem, QSlider, QComboBox,
     QFileDialog, QInputDialog, QMessageBox, QMenu, QStackedWidget,
+    QStyle, QStyleOptionSlider,
 )
 
 from .engine import Engine, ROOT
@@ -32,8 +33,8 @@ from .win11 import (
     make_accent_palette
 )
 from .dialogs import FluentDialog
-from .icons import get_icon
-from .artwork import get_media_artwork, clear_artwork_cache
+from .icons import get_icon, get_navigation_icon
+from .artwork import get_media_artwork, clear_artwork_cache, create_fallback_artwork
 from .metadata import extract_media_metadata
 from .settings_view import SettingsView
 from .updater import CURRENT_VERSION
@@ -103,23 +104,86 @@ class MediaThumbnail(QWidget):
             p.setPen(QPen(QColor(0, 0, 0, 30) if self.is_light else QColor(255, 255, 255, 30), 1))
             p.drawPath(path)
         else:
-            border_pen = QColor(0, 0, 0, 25) if self.is_light else QColor(255, 255, 255, 20)
-            bg_col = QColor(235, 235, 235) if self.is_light else QColor(42, 42, 42)
-            p.setPen(QPen(border_pen, 1))
-            p.setBrush(bg_col)
-            p.drawPath(path)
-
-            icon_name = 'music'
-            if self.kind == 'Video':
-                icon_name = 'video'
-            elif self.kind == 'Stream':
-                icon_name = 'stream'
-
-            accent = self.accent or WIN11_ACCENT
-            icon = get_icon(icon_name, accent, 20)
-            icon_rect = QRect(11, 11, 20, 20)
-            icon.paint(p, icon_rect)
+            p.drawPixmap(0, 0, create_fallback_artwork(
+                self.kind, 42, 6, self.accent or WIN11_ACCENT, self.is_light))
         p.end()
+
+
+class ClickableSlider(QSlider):
+    """QSlider subclass that supports direct click-to-seek and smooth scrubbing.
+
+    Qt's default QSlider implementation treats mouse clicks on the groove outside the handle
+    as a page-step rather than jumping to the cursor, and does not emit sliderReleased on
+    un-dragged track clicks. ClickableSlider calculates the exact position-to-value ratio
+    accounting for handle width and groove geometry, sets sliderDown, updates value, and
+    fires sliderPressed, sliderMoved, and sliderReleased signals properly.
+    """
+    def __init__(self, orientation=Qt.Orientation.Horizontal, parent=None):
+        super().__init__(orientation, parent)
+
+    def _pos_to_value(self, pos_coord):
+        opt = QStyleOptionSlider()
+        self.initStyleOption(opt)
+        gr = self.style().subControlRect(QStyle.ComplexControl.CC_Slider, opt, QStyle.SubControl.SC_SliderGroove, self)
+        hr = self.style().subControlRect(QStyle.ComplexControl.CC_Slider, opt, QStyle.SubControl.SC_SliderHandle, self)
+
+        if self.orientation() == Qt.Orientation.Horizontal:
+            hw = hr.width() if hr.width() > 0 else 14
+            min_pos = gr.left() + hw // 2
+            max_pos = gr.right() - hw // 2
+            span = max_pos - min_pos
+            if span <= 0:
+                return self.minimum()
+            ratio = max(0.0, min(1.0, (pos_coord - min_pos) / float(span)))
+        else:
+            hh = hr.height() if hr.height() > 0 else 14
+            min_pos = gr.bottom() - hh // 2
+            max_pos = gr.top() + hh // 2
+            span = max_pos - min_pos
+            if span == 0:
+                return self.minimum()
+            ratio = max(0.0, min(1.0, (pos_coord - min_pos) / float(span)))
+
+        if self.invertedAppearance():
+            ratio = 1.0 - ratio
+
+        return int(round(self.minimum() + ratio * (self.maximum() - self.minimum())))
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            pos_coord = event.position().x() if hasattr(event, 'position') else event.pos().x()
+            if self.orientation() == Qt.Orientation.Vertical:
+                pos_coord = event.position().y() if hasattr(event, 'position') else event.pos().y()
+            val = self._pos_to_value(pos_coord)
+            self.setValue(val)
+            self.setSliderDown(True)
+            self.sliderMoved.emit(val)
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            pos_coord = event.position().x() if hasattr(event, 'position') else event.pos().x()
+            if self.orientation() == Qt.Orientation.Vertical:
+                pos_coord = event.position().y() if hasattr(event, 'position') else event.pos().y()
+            val = self._pos_to_value(pos_coord)
+            self.setValue(val)
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            pos_coord = event.position().x() if hasattr(event, 'position') else event.pos().x()
+            if self.orientation() == Qt.Orientation.Vertical:
+                pos_coord = event.position().y() if hasattr(event, 'position') else event.pos().y()
+            val = self._pos_to_value(pos_coord)
+            self.setValue(val)
+            self.setSliderDown(False)
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
 
 
 class FolderScan(QThread):
@@ -378,7 +442,7 @@ class PlayerWindow(QMainWindow):
         self.sidebar.setMouseTracking(True)
         side = QVBoxLayout(self.sidebar)
         side.setContentsMargins(12, 16, 12, 16)
-        side.setSpacing(4)
+        side.setSpacing(6)
 
         # Windows 11 App Header & Brand
         brand_row = QHBoxLayout()
@@ -437,7 +501,7 @@ class PlayerWindow(QMainWindow):
         ]
         for key, display_text, icon_name in nav_items:
             b = button(display_text, lambda checked=False, t=key: self.navigate(t), 'nav')
-            b.setIcon(get_icon(icon_name, nav_icon_color, 18))
+            b.setIcon(get_navigation_icon(icon_name, nav_icon_color, accent_text))
             b.setCheckable(True)
             side.addWidget(b)
             self.nav[key] = b
@@ -453,17 +517,17 @@ class PlayerWindow(QMainWindow):
         side.addWidget(self.sidebar_divider)
 
         self.settings_btn = button('Settings', lambda checked=False: self.navigate('Settings'), 'nav')
-        self.settings_btn.setIcon(get_icon('settings', nav_icon_color, 18))
+        self.settings_btn.setIcon(get_navigation_icon('settings', nav_icon_color, accent_text))
         self.settings_btn.setCheckable(True)
         side.addWidget(self.settings_btn)
         self.nav['Settings'] = self.settings_btn
 
         self.shortcuts_btn = button('Shortcuts', self.shortcuts_dialog, 'nav')
-        self.shortcuts_btn.setIcon(get_icon('keyboard', nav_icon_color, 18))
+        self.shortcuts_btn.setIcon(get_navigation_icon('keyboard', nav_icon_color, accent_text))
         side.addWidget(self.shortcuts_btn)
 
         self.about_btn = button('About', self.about, 'nav')
-        self.about_btn.setIcon(get_icon('info', nav_icon_color, 18))
+        self.about_btn.setIcon(get_navigation_icon('info', nav_icon_color, accent_text))
         side.addWidget(self.about_btn)
 
         self.body_layout.addWidget(self.sidebar)
@@ -773,9 +837,10 @@ class PlayerWindow(QMainWindow):
         timeline.setSpacing(12)
         self.elapsed = label('0:00', 'muted')
         self.duration = label('0:00', 'muted')
-        self.seek = QSlider(Qt.Orientation.Horizontal)
+        self.seek = ClickableSlider(Qt.Orientation.Horizontal)
         self.seek.setRange(0, 10000)
         self.seek.setAccessibleName('Playback position')
+        self.seek.sliderMoved.connect(self.on_seek_moved)
         self.seek.sliderReleased.connect(self.seek_released)
         timeline.addWidget(self.elapsed)
         timeline.addWidget(self.seek, 1)
@@ -894,7 +959,7 @@ class PlayerWindow(QMainWindow):
         self.mute.setIcon(get_icon('volume', transport_icon, 18))
         right_box.addWidget(self.mute)
 
-        self.volume = QSlider(Qt.Orientation.Horizontal)
+        self.volume = ClickableSlider(Qt.Orientation.Horizontal)
         self.volume.setFixedWidth(90)
         self.volume.setRange(0, 100)
         self.volume.setValue(int(self.library.settings.get('volume', 70)))
@@ -1773,10 +1838,20 @@ class PlayerWindow(QMainWindow):
             self.queue_index = row
         self.update_queue()
 
+    def on_seek_moved(self, value):
+        if self.engine and self.engine.length > 0:
+            preview_ms = self.engine.length * value / 10000
+            self.elapsed.setText(clock(preview_ms))
+            if hasattr(self, 'video_time_label'):
+                self.video_time_label.setText(f"{clock(preview_ms)} / {clock(self.engine.length)}")
+
     def seek_released(self):
         if self.engine and self.engine.seekable:
             self.pending_resume = 0
-            self.engine.seek(self.engine.length * self.seek.value() / 10000)
+            target_ms = self.engine.length * self.seek.value() / 10000
+            self.engine.seek(target_ms)
+            if self.current:
+                self.current['position'] = int(target_ms)
 
     def jump(self, amount):
         if self.current and self.engine.seekable:
@@ -2159,13 +2234,13 @@ class PlayerWindow(QMainWindow):
         if hasattr(self, 'nav'):
             for key, b in self.nav.items():
                 icon_name = self.nav_icons.get(key, 'music') if hasattr(self, 'nav_icons') else 'music'
-                b.setIcon(get_icon(icon_name, nav_icon, 18))
+                b.setIcon(get_navigation_icon(icon_name, nav_icon, accent_text))
         if hasattr(self, 'settings_btn'):
-            self.settings_btn.setIcon(get_icon('settings', nav_icon, 18))
+            self.settings_btn.setIcon(get_navigation_icon('settings', nav_icon, accent_text))
         if hasattr(self, 'shortcuts_btn'):
-            self.shortcuts_btn.setIcon(get_icon('keyboard', nav_icon, 18))
+            self.shortcuts_btn.setIcon(get_navigation_icon('keyboard', nav_icon, accent_text))
         if hasattr(self, 'about_btn'):
-            self.about_btn.setIcon(get_icon('info', nav_icon, 18))
+            self.about_btn.setIcon(get_navigation_icon('info', nav_icon, accent_text))
         if hasattr(self, 'sidebar_divider'):
             div_bg = 'rgba(0, 0, 0, 0.08)' if is_light else 'rgba(255, 255, 255, 0.08)'
             self.sidebar_divider.setStyleSheet(f'background: {div_bg}; margin: 6px 2px;')

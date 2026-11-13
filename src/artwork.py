@@ -26,6 +26,54 @@ class _SIZE(Structure):
     _fields_ = [('cx', wintypes.LONG), ('cy', wintypes.LONG)]
 
 
+class _BITMAPINFOHEADER(Structure):
+    _fields_ = [
+        ('biSize', wintypes.DWORD), ('biWidth', wintypes.LONG),
+        ('biHeight', wintypes.LONG), ('biPlanes', wintypes.WORD),
+        ('biBitCount', wintypes.WORD), ('biCompression', wintypes.DWORD),
+        ('biSizeImage', wintypes.DWORD), ('biXPelsPerMeter', wintypes.LONG),
+        ('biYPelsPerMeter', wintypes.LONG), ('biClrUsed', wintypes.DWORD),
+        ('biClrImportant', wintypes.DWORD),
+    ]
+
+
+def image_from_shell_bitmap(hbitmap):
+    """Read either bitmap orientation as explicit top-down, opaque BGRA pixels."""
+    gdi = ctypes.WinDLL('gdi32')
+    gdi.CreateCompatibleDC.argtypes = [wintypes.HDC]
+    gdi.CreateCompatibleDC.restype = wintypes.HDC
+    gdi.DeleteDC.argtypes = [wintypes.HDC]
+    gdi.DeleteDC.restype = wintypes.BOOL
+    gdi.GetDIBits.argtypes = [wintypes.HDC, wintypes.HBITMAP, wintypes.UINT,
+                             wintypes.UINT, c_void_p, c_void_p, wintypes.UINT]
+    gdi.GetDIBits.restype = c_int
+    dc = gdi.CreateCompatibleDC(None)
+    if not dc:
+        return QImage()
+    try:
+        header = _BITMAPINFOHEADER()
+        header.biSize = ctypes.sizeof(header)
+        if not gdi.GetDIBits(dc, hbitmap, 0, 0, None, byref(header), 0):
+            return QImage()
+        width, height = header.biWidth, abs(header.biHeight)
+        if width <= 0 or height <= 0 or width * height > 16_777_216:
+            return QImage()
+        # Negative height asks GDI to normalize the row order, including bottom-up
+        # video thumbnail DIBs that Qt's direct HBITMAP conversion can invert.
+        header.biHeight = -height
+        header.biPlanes = 1
+        header.biBitCount = 32
+        header.biCompression = 0  # BI_RGB
+        header.biSizeImage = width * height * 4
+        header.biClrUsed = header.biClrImportant = 0
+        pixels = ctypes.create_string_buffer(header.biSizeImage)
+        if gdi.GetDIBits(dc, hbitmap, 0, height, pixels, byref(header), 0) != height:
+            return QImage()
+        return QImage(pixels.raw, width, height, width * 4, QImage.Format.Format_RGB32).copy()
+    finally:
+        gdi.DeleteDC(dc)
+
+
 _IID_IShellItemImageFactory = None
 
 
@@ -89,8 +137,13 @@ def extract_windows_thumbnail(file_path, size=140):
         Release(p_factory)
 
         if hr_img == 0 and hbitmap.value:
-            qimg = QImage.fromHBITMAP(hbitmap.value)
-            ctypes.windll.gdi32.DeleteObject(hbitmap)
+            try:
+                qimg = image_from_shell_bitmap(hbitmap)
+            finally:
+                delete_object = ctypes.windll.gdi32.DeleteObject
+                delete_object.argtypes = [wintypes.HGDIOBJ]
+                delete_object.restype = wintypes.BOOL
+                delete_object(hbitmap)
             if not qimg.isNull():
                 return QPixmap.fromImage(qimg)
     except Exception:
@@ -382,8 +435,35 @@ def round_pixmap(src, size=140, radius=8):
     return out
 
 
+def fallback_colors(accent, is_light):
+    """Flat accent-tinted surface and an icon with at least 4.5:1 contrast."""
+    tint = QColor(accent)
+    if not tint.isValid():
+        tint = QColor('#0078d4')
+    base = QColor('#f4f4f4' if is_light else '#242424')
+
+    def blend(first, second, amount):
+        return QColor(*[round(a * (1 - amount) + b * amount)
+                        for a, b in zip(first.getRgb()[:3], second.getRgb()[:3])])
+
+    def luminance(color):
+        channels = [v / 255 for v in color.getRgb()[:3]]
+        linear = [v / 12.92 if v <= .04045 else ((v + .055) / 1.055) ** 2.4 for v in channels]
+        return sum(v * weight for v, weight in zip(linear, (.2126, .7152, .0722)))
+
+    surface = blend(base, tint, .10 if is_light else .16)
+    ink = QColor(tint)
+    target = QColor('#000000' if is_light else '#ffffff')
+    for step in range(21):
+        ink = blend(tint, target, step / 20)
+        low, high = sorted((luminance(surface), luminance(ink)))
+        if (high + .05) / (low + .05) >= 4.5:
+            break
+    return surface, ink
+
+
 def create_fallback_artwork(kind='Music', size=140, radius=8, accent=None, is_light=None):
-    """Generate high-DPI Windows 11 Fluent artwork card with gradient and vector icon."""
+    """Generate a flat, theme-aware artwork tile without a circular backdrop."""
     if is_light is None:
         is_light = is_windows_light_theme()
     if accent is None:
@@ -395,34 +475,21 @@ def create_fallback_artwork(kind='Music', size=140, radius=8, accent=None, is_li
     p = QPainter(pix)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-    # Card background gradient
+    surface, ink = fallback_colors(accent, is_light)
     path = QPainterPath()
     path.addRoundedRect(QRectF(1, 1, size - 2, size - 2), radius, radius)
-    grad = QLinearGradient(0, 0, size, size)
-    if is_light:
-        grad.setColorAt(0, QColor('#ffffff'))
-        grad.setColorAt(1, QColor('#eaeaea'))
-    else:
-        grad.setColorAt(0, QColor('#2b2b2b'))
-        grad.setColorAt(1, QColor('#1e1e1e'))
-    p.fillPath(path, grad)
-
-    # Center glow circle
-    p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(QColor(0, 0, 0, 8) if is_light else QColor(255, 255, 255, 10))
-    center = size / 2.0
-    r = size * 0.28
-    p.drawEllipse(QRectF(center - r, center - r, r * 2, r * 2))
+    p.fillPath(path, surface)
 
     # Center vector icon
     icon_name = 'video' if kind == 'Video' else ('stream' if kind == 'Stream' else 'music')
-    icon_size = max(16, int(size * 0.38))
-    icon = get_icon(icon_name, accent, icon_size)
+    icon_size = max(20, int(size * 0.58))
+    icon = get_icon(icon_name, ink.name(), icon_size)
     i_rect = QRect((size - icon_size) // 2, (size - icon_size) // 2, icon_size, icon_size)
     icon.paint(p, i_rect)
 
     # Subtle border
-    border_col = QColor(0, 0, 0, 22) if is_light else QColor(255, 255, 255, 25)
+    border_col = QColor(ink)
+    border_col.setAlpha(30)
     p.setPen(QPen(border_col, 1))
     p.setBrush(Qt.BrushStyle.NoBrush)
     p.drawPath(path)
