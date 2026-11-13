@@ -22,22 +22,41 @@ from PySide6.QtWidgets import (
     QStyle, QStyleOptionSlider,
 )
 
-from .engine import Engine, ROOT
-from .library import Library, AUDIO, VIDEO, clock
-from .theme import STYLE, get_stylesheet
-from .win11 import (
-    apply_win11_attributes, apply_win11_frameless_attributes, glyph,
-    WIN11_ACCENT, WIN11_ACCENT_HOVER, WIN11_ACCENT_PRESSED,
-    WIN11_ACCENT_BASE, WIN11_ACCENT_TEXT, WIN11_BG,
-    is_windows_light_theme, get_windows_accent_palette, refresh_win11_theme,
-    make_accent_palette
-)
-from .dialogs import FluentDialog
-from .icons import get_icon, get_navigation_icon
-from .artwork import get_media_artwork, clear_artwork_cache, create_fallback_artwork
-from .metadata import extract_media_metadata
-from .settings_view import SettingsView
-from .updater import CURRENT_VERSION
+if __package__ is None or __package__ == '':
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from src.engine import Engine, ROOT
+    from src.library import Library, AUDIO, VIDEO, clock
+    from src.theme import STYLE, get_stylesheet
+    from src.win11 import (
+        apply_win11_attributes, apply_win11_frameless_attributes, glyph,
+        WIN11_ACCENT, WIN11_ACCENT_HOVER, WIN11_ACCENT_PRESSED,
+        WIN11_ACCENT_BASE, WIN11_ACCENT_TEXT, WIN11_BG,
+        is_windows_light_theme, get_windows_accent_palette, refresh_win11_theme,
+        make_accent_palette
+    )
+    from src.dialogs import FluentDialog
+    from src.icons import get_icon, get_navigation_icon
+    from src.artwork import get_media_artwork, clear_artwork_cache, create_fallback_artwork
+    from src.metadata import extract_media_metadata
+    from src.settings_view import SettingsView
+    from src.updater import CURRENT_VERSION
+else:
+    from .engine import Engine, ROOT
+    from .library import Library, AUDIO, VIDEO, clock
+    from .theme import STYLE, get_stylesheet
+    from .win11 import (
+        apply_win11_attributes, apply_win11_frameless_attributes, glyph,
+        WIN11_ACCENT, WIN11_ACCENT_HOVER, WIN11_ACCENT_PRESSED,
+        WIN11_ACCENT_BASE, WIN11_ACCENT_TEXT, WIN11_BG,
+        is_windows_light_theme, get_windows_accent_palette, refresh_win11_theme,
+        make_accent_palette
+    )
+    from .dialogs import FluentDialog
+    from .icons import get_icon, get_navigation_icon
+    from .artwork import get_media_artwork, clear_artwork_cache, create_fallback_artwork
+    from .metadata import extract_media_metadata
+    from .settings_view import SettingsView
+    from .updater import CURRENT_VERSION
 
 
 def label(text, name='', wrap=False):
@@ -173,6 +192,7 @@ class ClickableSlider(QSlider):
                 pos_coord = event.position().y() if hasattr(event, 'position') else event.pos().y()
             val = self._pos_to_value(pos_coord)
             self.setValue(val)
+            self.sliderMoved.emit(val)
             event.accept()
         else:
             super().mouseMoveEvent(event)
@@ -843,6 +863,8 @@ class PlayerWindow(QMainWindow):
         self.duration = label('0:00', 'muted')
         self.seek = ClickableSlider(Qt.Orientation.Horizontal)
         self.seek.setRange(0, 10000)
+        self.seek.setFixedHeight(24)
+        self.seek.setCursor(Qt.CursorShape.PointingHandCursor)
         self.seek.setAccessibleName('Playback position')
         self.seek.sliderPressed.connect(self.seek_released)
         self.seek.sliderMoved.connect(self.on_seek_moved)
@@ -1844,19 +1866,25 @@ class PlayerWindow(QMainWindow):
         self.update_queue()
 
     def on_seek_moved(self, value):
-        if self.engine and self.engine.length > 0:
-            preview_ms = self.engine.length * value / 10000
+        length = (self.engine.length if self.engine else 0) or (self.current.get('duration', 0) if self.current else 0)
+        if length > 0:
+            preview_ms = length * value / 10000
             self.elapsed.setText(clock(preview_ms))
             if hasattr(self, 'video_time_label'):
-                self.video_time_label.setText(f"{clock(preview_ms)} / {clock(self.engine.length)}")
+                self.video_time_label.setText(f"{clock(preview_ms)} / {clock(length)}")
 
     def seek_released(self):
         if self.engine and self.engine.seekable:
             self.pending_resume = 0
-            target_ms = self.engine.length * self.seek.value() / 10000
-            self.engine.seek(target_ms)
-            if self.current:
-                self.current['position'] = int(target_ms)
+            length = (self.engine.length if self.engine else 0) or (self.current.get('duration', 0) if self.current else 0)
+            if length > 0:
+                target_ms = length * self.seek.value() / 10000
+                self.engine.seek(target_ms)
+                if self.current:
+                    self.current['position'] = int(target_ms)
+                self.elapsed.setText(clock(target_ms))
+                if hasattr(self, 'video_time_label'):
+                    self.video_time_label.setText(f"{clock(target_ms)} / {clock(length)}")
 
     def jump(self, amount):
         if self.current and self.engine.seekable:
@@ -2503,3 +2531,7 @@ def main():
         if items:
             window.start_queue(items)
     return app.exec()
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

@@ -40,6 +40,7 @@ class Engine:
             'media_player_get_length': (C.c_int64, [C.c_void_p]),
             'media_player_is_seekable': (C.c_int, [C.c_void_p]),
             'media_player_set_time': (C.c_int, [C.c_void_p, C.c_int64, C.c_bool]),
+            'media_player_set_position': (C.c_int, [C.c_void_p, C.c_float, C.c_bool]),
             'media_player_set_rate': (C.c_int, [C.c_void_p, C.c_float]),
             'audio_set_volume': (C.c_int, [C.c_void_p, C.c_int]),
             'media_player_add_slave': (C.c_int, [C.c_void_p, C.c_int, C.c_char_p, C.c_bool]),
@@ -117,9 +118,12 @@ class Engine:
         if self.paused_seek is not None:
             if self.state == 3:
                 return self.paused_seek
-            # While playing, guard against VLC's asynchronous seek reporting delay
-            if time.monotonic() - getattr(self, '_seek_timestamp', 0) < 0.6:
-                if abs(vlc_time - self.paused_seek) < 1500:
+            # While playing, hold target seek position during settling window (first 350ms)
+            elapsed = time.monotonic() - getattr(self, '_seek_timestamp', 0)
+            if elapsed < 0.35:
+                return self.paused_seek
+            elif elapsed < 0.8:
+                if abs(vlc_time - self.paused_seek) < 2000:
                     self.paused_seek = None
                     return vlc_time
                 return self.paused_seek
@@ -138,7 +142,10 @@ class Engine:
         milliseconds = max(0, int(milliseconds))
         self.paused_seek = milliseconds
         self._seek_timestamp = time.monotonic()
-        return self._media_player_set_time(self.player, milliseconds * 1000, False)
+        res = self._media_player_set_time(self.player, milliseconds * 1000, False)
+        if res != 0 and self.length > 0:
+            res = self._media_player_set_position(self.player, milliseconds / float(self.length), False)
+        return res
 
     def pause(self, paused=True):
         self._media_player_set_pause(self.player, int(paused))
