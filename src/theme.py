@@ -267,6 +267,10 @@ QFrame#transport[floating="true"] QPushButton#transport_round:hover {{
 QFrame#transport[floating="true"] QPushButton#transport_round:pressed {{
     background: rgba(255, 255, 255, 0.24);
 }}
+QFrame#transport[floating="true"] QSlider:horizontal {{
+    min-height: 24px;
+    height: 24px;
+}}
 QFrame#transport[floating="true"] QSlider::groove:horizontal {{
     height: 4px;
     background: rgba(255, 255, 255, 0.30);
@@ -592,6 +596,10 @@ QComboBox QAbstractItemView {{
     selection-color: {accent};
     padding: 4px;
     outline: none;
+}}
+QSlider:horizontal {{
+    min-height: 24px;
+    height: 24px;
 }}
 QSlider::groove:horizontal {{
     height: 4px;

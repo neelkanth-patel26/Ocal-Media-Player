@@ -2,6 +2,7 @@
 import ctypes as C
 import os
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent))
@@ -112,11 +113,18 @@ class Engine:
 
     @property
     def time(self):
-        # VLC's clock may not publish an audio seek until playback resumes.
-        if self.paused_seek is not None and self.state == 3:
-            return self.paused_seek
-        self.paused_seek = None
-        return max(0, self._media_player_get_time(self.player) // 1000)
+        vlc_time = max(0, self._media_player_get_time(self.player) // 1000)
+        if self.paused_seek is not None:
+            if self.state == 3:
+                return self.paused_seek
+            # While playing, guard against VLC's asynchronous seek reporting delay
+            if time.monotonic() - getattr(self, '_seek_timestamp', 0) < 0.6:
+                if abs(vlc_time - self.paused_seek) < 1500:
+                    self.paused_seek = None
+                    return vlc_time
+                return self.paused_seek
+            self.paused_seek = None
+        return vlc_time
 
     @property
     def length(self):
@@ -128,10 +136,9 @@ class Engine:
 
     def seek(self, milliseconds):
         milliseconds = max(0, int(milliseconds))
-        result = self._media_player_set_time(self.player, milliseconds * 1000, False)
-        if result == 0 and self.state == 3:
-            self.paused_seek = milliseconds
-        return result
+        self.paused_seek = milliseconds
+        self._seek_timestamp = time.monotonic()
+        return self._media_player_set_time(self.player, milliseconds * 1000, False)
 
     def pause(self, paused=True):
         self._media_player_set_pause(self.player, int(paused))

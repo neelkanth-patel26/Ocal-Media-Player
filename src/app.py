@@ -128,17 +128,21 @@ class ClickableSlider(QSlider):
         hr = self.style().subControlRect(QStyle.ComplexControl.CC_Slider, opt, QStyle.SubControl.SC_SliderHandle, self)
 
         if self.orientation() == Qt.Orientation.Horizontal:
+            total_w = gr.width() if gr.width() > 0 else self.width()
             hw = hr.width() if hr.width() > 0 else 14
-            min_pos = gr.left() + hw // 2
-            max_pos = gr.right() - hw // 2
+            min_pos = gr.left() + hw // 2 if gr.width() > 0 else hw // 2
+            max_pos = gr.right() - hw // 2 if gr.width() > 0 else (total_w - hw // 2)
             span = max_pos - min_pos
             if span <= 0:
-                return self.minimum()
-            ratio = max(0.0, min(1.0, (pos_coord - min_pos) / float(span)))
+                span = max(1, total_w)
+                ratio = max(0.0, min(1.0, pos_coord / float(span)))
+            else:
+                ratio = max(0.0, min(1.0, (pos_coord - min_pos) / float(span)))
         else:
+            total_h = gr.height() if gr.height() > 0 else self.height()
             hh = hr.height() if hr.height() > 0 else 14
-            min_pos = gr.bottom() - hh // 2
-            max_pos = gr.top() + hh // 2
+            min_pos = gr.bottom() - hh // 2 if gr.height() > 0 else (total_h - hh // 2)
+            max_pos = gr.top() + hh // 2 if gr.height() > 0 else hh // 2
             span = max_pos - min_pos
             if span == 0:
                 return self.minimum()
@@ -840,6 +844,7 @@ class PlayerWindow(QMainWindow):
         self.seek = ClickableSlider(Qt.Orientation.Horizontal)
         self.seek.setRange(0, 10000)
         self.seek.setAccessibleName('Playback position')
+        self.seek.sliderPressed.connect(self.seek_released)
         self.seek.sliderMoved.connect(self.on_seek_moved)
         self.seek.sliderReleased.connect(self.seek_released)
         timeline.addWidget(self.elapsed)
